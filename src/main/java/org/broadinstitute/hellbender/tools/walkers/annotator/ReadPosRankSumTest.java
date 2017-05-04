@@ -39,7 +39,7 @@ public final class ReadPosRankSumTest extends RankSumTest implements StandardAnn
     }
 
     @Override
-    protected OptionalDouble getElementForRead(final GATKRead read, final int refLoc) {
+    public OptionalDouble getElementForRead(final GATKRead read, final int refLoc) {
         Utils.nonNull(read);
         final int offset = ReadUtils.getReadCoordinateForReferenceCoordinate(ReadUtils.getSoftStart(read), read.getCigar(), refLoc, ReadUtils.ClippingTail.RIGHT_TAIL, true);
         if ( offset == ReadUtils.CLIPPING_GOAL_NOT_REACHED ) {
@@ -62,7 +62,7 @@ public final class ReadPosRankSumTest extends RankSumTest implements StandardAnn
     }
 
     @Override
-    protected boolean isUsableRead(final GATKRead read, final int refLoc) {
+    public boolean isUsableRead(final GATKRead read, final int refLoc) {
         Utils.nonNull(read);
         return super.isUsableRead(read, refLoc) && ReadUtils.getSoftEnd(read) >= refLoc;
     }
