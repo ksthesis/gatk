@@ -40,8 +40,6 @@ import java.util.OptionalDouble;
  */
 public class AS_ReadPosRankSumTest extends AS_RankSumTest implements AS_StandardAnnotation {
 
-    final ReadPosRankSumTest readPosRankSumTest = new ReadPosRankSumTest();
-
     @Override
     public List<String> getKeyNames() { return Arrays.asList(GATKVCFConstants.AS_READ_POS_RANK_SUM_KEY); }
 
@@ -50,11 +48,12 @@ public class AS_ReadPosRankSumTest extends AS_RankSumTest implements AS_Standard
 
     @Override
     protected OptionalDouble getElementForRead(final GATKRead read, final int refLoc) {
-        return readPosRankSumTest.getElementForRead(read, refLoc);
+        return ReadPosRankSumTest.getReadPosition(read, refLoc);
     }
 
     @Override
-    protected boolean isUsableRead(final GATKRead read, final int refLoc) {
-        return readPosRankSumTest.isUsableRead(read, refLoc);
+    public boolean isUsableRead(final GATKRead read, final int refLoc) {
+        Utils.nonNull(read);
+        return super.isUsableRead(read, refLoc) && ReadUtils.getSoftEnd(read) >= refLoc;
     }
 }
