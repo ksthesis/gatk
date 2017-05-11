@@ -490,19 +490,23 @@ public final class ReadLikelihoods<A extends Allele> implements SampleList, Alle
      * @param candidateAlleles the potentially missing alleles.
      * @param defaultLikelihood the default read likelihood value for that allele.
      *
+     * @return {@code true} iff the the read-likelihood collection was modified by the addition of the input alleles.
+     *  So if all the alleles in the input collection were already present in the read-likelihood collection this method
+     *  will return {@code false}.
+     *
      * @throws IllegalArgumentException if {@code candidateAlleles} is {@code null} or there is more than
      * one missing allele that is a reference or there is one but the collection already has
      * a reference allele.
      */
-    public void addMissingAlleles(final Collection<A> candidateAlleles, final double defaultLikelihood) {
+    public boolean addMissingAlleles(final Collection<A> candidateAlleles, final double defaultLikelihood) {
         Utils.nonNull(candidateAlleles, "the candidateAlleles list cannot be null");
         if (candidateAlleles.isEmpty()) {
-            return;
+            return false;
         }
         final List<A> allelesToAdd = candidateAlleles.stream().filter(allele -> !alleles.containsAllele(allele)).collect(Collectors.toList());
 
         if (allelesToAdd.isEmpty()) {
-            return;
+            return false;
         }
 
         final int oldAlleleCount = alleles.numberOfAlleles();
@@ -537,6 +541,7 @@ public final class ReadLikelihoods<A extends Allele> implements SampleList, Alle
             }
             valuesBySampleIndex[s] = newValuesBySampleIndex;
         }
+        return true;
     }
 
     /**
