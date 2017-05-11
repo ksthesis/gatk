@@ -7,6 +7,7 @@ import it.unimi.dsi.fastutil.ints.IntArrayList;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import org.apache.commons.collections.ListUtils;
+import org.apache.commons.math3.stat.descriptive.rank.Median;
 import org.broadinstitute.hellbender.utils.IndexRange;
 import org.broadinstitute.hellbender.utils.SimpleInterval;
 import org.broadinstitute.hellbender.utils.Utils;
@@ -917,6 +918,56 @@ public final class ReadLikelihoods<A extends Allele> implements SampleList, Alle
             nonRefAlleleLikelihoods[r] = secondBestLikelihood;
         }
     }
+
+
+    /**
+     * Updates the likelihoods of the non-ref allele, if present, considering all non-symbolic alleles avaialble.
+     */
+    public void updateNonRefAlleleLikelihoods() {
+        updateNonRefAlleleLikelihoods(alleles);
+    }
+
+    /**
+     * Updates the likelihood of the NonRef allele (if present) based on the likelihoods of a set of non-symbolic
+     * <p>
+     *     This method does
+     * </p>
+     *
+     *
+     * @param allelesToConsider
+     */
+    public void updateNonRefAlleleLikelihoods(final AlleleList<A> allelesToConsider) {
+        final int alleleCount = alleles.numberOfAlleles();
+        final int nonRefAlleleIndex = indexOfAllele((A) GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE);
+        final int nonSymbolicAlleleCount = nonRefAlleleIndex < 0 ? alleleCount : alleleCount - 1;
+        // likelihood buffer reused across reads:
+        final double[] qualifiedAlleleLikelihoods = new double[nonSymbolicAlleleCount];
+        final Median medianCalculator = new Median();
+        for (int s = 0; s < samples.numberOfSamples(); s++) {
+            final double[][] sampleValues = valuesBySampleIndex[s];
+            final int readCount = sampleValues[0].length;
+            for (int r = 0; r < readCount; r++) {
+                final BestAllele bestAllele = searchBestAllele(s, r, true);
+                int numberOfQualifiedAlleleLikelihoods = 0;
+                for (int i = 0; i < alleleCount; i++) {
+                    final double alleleLikelihood = sampleValues[i][r];
+                    if (i != nonRefAlleleIndex && alleleLikelihood < bestAllele.likelihood
+                            && !Double.isNaN(alleleLikelihood) && allelesToConsider.indexOfAllele(alleles.getAllele(i)) != -1) {
+                        qualifiedAlleleLikelihoods[numberOfQualifiedAlleleLikelihoods++] = alleleLikelihood;
+                    }
+                }
+                final double nonRefLikelihood = medianCalculator.evaluate(qualifiedAlleleLikelihoods, 0, numberOfQualifiedAlleleLikelihoods);
+                // when the median is NaN that means that all applicable likekihoods are the same as the best
+                // so the read is not informative at all given the existing alleles. Unless there is only one (or zero) concrete
+                // alleles with give the same (the best) likelihood to the NON-REF. When there is only one (or zero) concrete
+                // alleles we set the NON-REF likelihood to NaN.
+                sampleValues[nonRefAlleleIndex][r] = !Double.isNaN(nonRefLikelihood) ? nonRefLikelihood
+                        : nonSymbolicAlleleCount <= 1 ? Double.NaN : bestAllele.likelihood;
+            }
+        }
+    }
+
+
 
     /**
      * Downsamples reads based on contamination fractions making sure that all alleles are affected proportionally.
