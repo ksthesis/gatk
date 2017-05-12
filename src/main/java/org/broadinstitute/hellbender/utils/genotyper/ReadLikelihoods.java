@@ -910,6 +910,7 @@ public final class ReadLikelihoods<A extends Allele> implements SampleList, Alle
      *
      * @param allelesToConsider
      */
+    @SuppressWarnings("unchecked")  // for the cast (A) GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE below
     public void updateNonRefAlleleLikelihoods(final AlleleList<A> allelesToConsider) {
         final int alleleCount = alleles.numberOfAlleles();
         final int nonRefAlleleIndex = indexOfAllele((A) GATKVCFConstants.NON_REF_SYMBOLIC_ALLELE);
