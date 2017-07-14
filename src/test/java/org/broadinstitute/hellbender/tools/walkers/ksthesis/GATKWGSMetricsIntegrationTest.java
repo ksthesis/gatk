@@ -29,6 +29,23 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile(), "#");
     }
 
+    @Test
+    public void testGATKWGSMetricsEncode() throws IOException {
+        final File tempFile = createTempFile("GATKWGSMetrics.", ".metrics");
+        //noinspection ResultOfMethodCallIgnored
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -M " + "wgEncodeCrgMapabilityAlign36mer.subset.bed" +
+                        " -L 20:10000000-11000000 " +
+                        " -RGS 2" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetrics", this);
+    }
+
     /**
      * Produces a different result if reading into adaptors is allowed using a replacement method:
      *
