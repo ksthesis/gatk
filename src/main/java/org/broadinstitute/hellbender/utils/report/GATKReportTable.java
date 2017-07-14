@@ -257,8 +257,10 @@ public final class GATKReportTable {
      * @param ID                    the unique ID
      * @param populateFirstColumn   should we automatically populate the first column with the row's ID?
      */
-    public void addRowID(final String ID, final boolean populateFirstColumn) {
-        addRowIDMapping(ID, underlyingData.size(), populateFirstColumn);
+    public int addRowID(final Object ID, final boolean populateFirstColumn) {
+        int index = underlyingData.size();
+        addRowIDMapping(ID, index, populateFirstColumn);
+        return index;
     }
 
     /**
@@ -267,7 +269,7 @@ public final class GATKReportTable {
      * @param ID                    the unique ID
      * @param index                 the index associated with the ID
      */
-    public void addRowIDMapping(final String ID, final int index) {
+    public void addRowIDMapping(final Object ID, final int index) {
         addRowIDMapping(ID, index, false);
     }
 
@@ -391,6 +393,40 @@ public final class GATKReportTable {
         }
 
         set(rowIdToIndex.get(rowID), columnNameToIndex.get(columnName), prevValue + 1);
+    }
+
+    /**
+     * Returns the index of the first row matching the column values.
+     * Ex: "CountVariants", "dbsnp", "eval", "called", "all", "novel", "all"
+     *
+     * @param columnValues column values.
+     * @return The index of the first row matching the column values or -1 if no such row exists.
+     */
+    public int findRowByData(final Object... columnValues) {
+        if ( columnValues == null || columnValues.length == 0 || columnValues.length > getNumColumns() )
+            return -1;
+
+        for ( int rowIndex = 0; rowIndex < underlyingData.size(); rowIndex++ ) {
+
+            final Object[] row = underlyingData.get(rowIndex);
+
+            boolean matches = true;
+            for ( int colIndex = 0; colIndex < columnValues.length; colIndex++ ) {
+                if ( !columnValues[colIndex].equals(row[colIndex]) ) {
+                    matches = false;
+                    break;
+                }
+            }
+
+            if ( matches )
+                return rowIndex;
+        }
+
+        return -1;
+    }
+
+    public int getColumnIndex(final String columnName) {
+        return columnNameToIndex.get(columnName);
     }
 
     private Object fixType(final Object value, final GATKReportColumn column) {

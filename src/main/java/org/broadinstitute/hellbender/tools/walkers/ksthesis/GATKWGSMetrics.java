@@ -2,27 +2,24 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.util.Histogram;
+import htsjdk.tribble.bed.BEDFeature;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
 import org.broadinstitute.hellbender.cmdline.programgroups.QCProgramGroup;
-import org.broadinstitute.hellbender.engine.AlignmentContext;
-import org.broadinstitute.hellbender.engine.FeatureContext;
-import org.broadinstitute.hellbender.engine.LocusWalker;
-import org.broadinstitute.hellbender.engine.ReferenceContext;
+import org.broadinstitute.hellbender.engine.*;
 import org.broadinstitute.hellbender.engine.filters.MappingQualityReadFilter;
 import org.broadinstitute.hellbender.engine.filters.ReadFilter;
 import org.broadinstitute.hellbender.engine.filters.ReadFilterLibrary;
 import org.broadinstitute.hellbender.utils.pileup.PileupElement;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
+import org.broadinstitute.hellbender.utils.report.GATKReport;
+import org.broadinstitute.hellbender.utils.report.GATKReportTable;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
-import java.util.Queue;
-import java.util.Set;
+import java.io.IOException;
+import java.io.PrintStream;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -52,6 +49,7 @@ import java.util.stream.StreamSupport;
  *   -O output_file_name
  * </pre>
  */
+@SuppressWarnings({"FieldCanBeLocal", "WeakerAccess"})
 @CommandLineProgramProperties(
         summary = "TODO",
         oneLineSummary = "TODO",
@@ -64,7 +62,48 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public File outFile = null;
 
-    @SuppressWarnings("FieldCanBeLocal")
+    @Argument(fullName = "gcLeading",
+            shortName = "GCL",
+            doc = "GC window leading bases, default 50",
+            optional = true)
+    private final int gcWindowLeadingBases = 50;
+
+    @Argument(fullName = "gcTrailing",
+            shortName = "GCT",
+            doc = "GC window trailing bases, default 250",
+            optional = true)
+    private final int gcWindowTrailingBases = 250;
+
+    @Argument(fullName = "gcBin",
+            shortName = "GCB",
+            doc = "GC content bin, default 2",
+            optional = true)
+    private final int gcBin = 2;
+
+    @Argument(fullName = "insertSizeMax",
+            shortName = "ISM",
+            doc = "Insert size maximum, default 600",
+            optional = true)
+    private final int insertSizeMax = 600;
+
+    @Argument(fullName = "insertSizeBin",
+            shortName = "ISB",
+            doc = "Insert size bin, default 100",
+            optional = true)
+    private final int insertSizeBin = 100;
+
+    @Argument(fullName = "mapabilityBin",
+            shortName = "MAPB",
+            doc = "Mapability bin, default 20",
+            optional = true)
+    private final int mapabilityBin = 20;
+
+    @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
+    public FeatureInput<BEDFeature> mapabilityBed;
+
+    @Argument(fullName = "readGroupSplits", shortName = "RGS", doc = "read group splits", optional = true)
+    public Integer readGroupSplits = 0;
+
     private final int MINIMUM_MAPPING_QUALITY = 20;
     private final int MINIMUM_BASE_QUALITY = 20;
     private final int COVERAGE_CAP = 250;
@@ -83,13 +122,6 @@ public final class GATKWGSMetrics extends LocusWalker {
         return defaultFilters;
     }
 
-    public static class MappedPairFilter extends ReadFilter {
-        @Override
-        public boolean test(final GATKRead read) {
-            return read.isPaired() && !read.mateIsUnmapped();
-        }
-    }
-
     @Override
     public boolean emitEmptyLoci() {
         return true;
@@ -100,257 +132,51 @@ public final class GATKWGSMetrics extends LocusWalker {
         return true;
     }
 
+    private final GATKReport gatkReport = new GATKReport();
+    private final GATKReportTable gatkReportTable =
+            new GATKReportTable("Histogram", "Histogram", 0, GATKReportTable.Sorting.SORT_BY_ROW);
+    private final GATKReportTable referenceReportTable =
+            new GATKReportTable("ReferenceCounts", "ReferenceCounts", 0, GATKReportTable.Sorting.SORT_BY_ROW);
+
+    private static final String GATK_REPORT_COLUMN_COVERAGE = "coverage";
+    private static final String GATK_REPORT_COLUMN_COUNT = "count";
+
+    private GCStratifier gcStratifier;
+
+    private MapabilityStratifier mapabilityStratifier;
+
+    private ReadGroupStratifier readGroupStratifier;
+
+    private AbsTLenStratifier absTLenStratifier;
+
     @Override
     public void onTraversalStart() {
+        gcStratifier = new GCStratifier(gcBin, gcWindowLeadingBases, gcWindowTrailingBases);
+        mapabilityStratifier = new MapabilityStratifier(mapabilityBin, mapabilityBed);
+        readGroupStratifier = new DebugReadGroupStratifier(readGroupSplits);
+        absTLenStratifier = new AbsTLenStratifier(insertSizeBin, insertSizeMax);
+
+        gatkReport.addTable(gatkReportTable);
+        addTableStratifier(gatkReportTable, gcStratifier);
+        addTableStratifier(gatkReportTable, mapabilityStratifier);
+        addTableStratifier(gatkReportTable, readGroupStratifier);
+        addTableStratifier(gatkReportTable, absTLenStratifier);
+        gatkReportTable.addColumn(GATK_REPORT_COLUMN_COVERAGE, "%d");
+        gatkReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
+
+        gatkReport.addTable(referenceReportTable);
+        addTableStratifier(referenceReportTable, gcStratifier);
+        addTableStratifier(referenceReportTable, mapabilityStratifier);
+        referenceReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
     }
 
-    private String lastContig = null;
-
-    // BEGIN TELOMERE SEARCH
-    private static final byte[] TELOMERE_FORWARD = {'T', 'T', 'A', 'G', 'G', 'G'};
-    private static final byte[] TELOMERE_REVERSE = {'C', 'C', 'C', 'T', 'A', 'A'};
-    private static final int TELOMERE_WINDOW_LEADING_BASES = 3;
-    private static final int TELOMERE_WINDOW_TRAILING_BASES = 3; // This is actually 1 too long, window size = 7.
-    private static final int TELOMERE_SEARCH = 10_000_000;
-    private long lastForward = 0;
-    private long lastReverse = 0;
-    // END TELOMERE SEARCH
-
-    // BEGIN GC RATIO 1
-    private static final int GC_WINDOW_LEADING_BASES = 50;
-    private static final int GC_WINDOW_TRAILING_BASES = 50;
-    private static final int GC_WINDOW_LENGTH_BASES = GC_WINDOW_LEADING_BASES + GC_WINDOW_TRAILING_BASES + 1;
-    private long windowGC = 0;
-    private long windowAT = 0;
-    // END GC RATIO 1
-
-    // BEGIN GC RATIO 2
-    private static final int GC_QUEUE_SIZE = 100;
-    private final Queue<Byte> queueGCRatio = new LinkedList<>();
-    private long queueGC = 0;
-    private long queueAT = 0;
-    // END GC RATIO 2
-
-    // BEGIN GC RATIO COMP
-    private static final double GC_RATIO_DIFF = 0.5;
-    // BEGIN GC RATIO COMP
+    private static void addTableStratifier(final GATKReportTable table, final Stratifier stratifier) {
+        table.addColumn(stratifier.getColumnName(), stratifier.getColumnFormat());
+    }
 
     @Override
     public void apply(final AlignmentContext context, final ReferenceContext ref, final FeatureContext featureContext) {
         final byte base = ref.getBase();
-
-        final String contig = context.getContig();
-        final boolean resetContig;
-        if (!Objects.equals(lastContig, contig)) {
-            lastContig = contig;
-            resetContig = true;
-        } else {
-            resetContig = false;
-        }
-
-        // BEGIN GC RATIO 1
-        if (resetContig) {
-            windowGC = 0;
-            windowAT = 0;
-        }
-        ref.setWindow(GC_WINDOW_LEADING_BASES, GC_WINDOW_TRAILING_BASES);
-        final byte[] gcWindow = ref.getBases();
-
-        if (gcWindow.length == GC_WINDOW_LENGTH_BASES) {
-            switch (gcWindow[0]) {
-                case 'N':
-                    break;
-                case 'G':
-                case 'C':
-                    windowGC--;
-                    break;
-                case 'A':
-                case 'T':
-                    windowAT--;
-                    break;
-                default:
-                    break;
-            }
-        }
-        switch (gcWindow[gcWindow.length - 1]) {
-            case 'N':
-                break;
-            case 'G':
-            case 'C':
-                windowGC++;
-                break;
-            case 'A':
-            case 'T':
-                windowAT++;
-                break;
-            default:
-                break;
-        }
-        final double gcRatio1Total = windowGC + windowAT;
-        final double gcRatio1 = gcRatio1Total == 0 ? 0 : windowGC / gcRatio1Total;
-
-        /*
-        Result:
-
-        Uses a window over the reference to calculate GC. Only the first and last positions in the window are examined
-        as the sliding GC is calculated.
-
-        Pluses:
-        - Can look ahead some number of bases.
-
-        Minuses:
-        - While the entire window of bases is not traversed, it still must be copied into a block of memory.
-        - Current implementation should also ensure that it reads the entire window's contents if the current sum of
-          base contents does not equal the expected size. It is (is it?) possible for the walker to start not at the
-          chromosome start positions.
-         */
-
-        // END GC RATIO 1
-
-        // BEGIN GC RATIO 2
-        if (resetContig) {
-            queueGCRatio.clear();
-            queueGC = 0;
-            queueAT = 0;
-        }
-
-        final byte removedBase;
-        if (queueGCRatio.size() == GC_QUEUE_SIZE) {
-            removedBase = queueGCRatio.remove();
-            switch (removedBase) {
-                case 'N':
-                    break;
-                case 'G':
-                case 'C':
-                    queueGC--;
-                    break;
-                case 'A':
-                case 'T':
-                    queueAT--;
-                    break;
-                default:
-                    break;
-            }
-        } else {
-            removedBase = '?';
-        }
-        queueGCRatio.add(base);
-        switch ((char) base) {
-            case 'N':
-                break;
-            case 'G':
-            case 'C':
-                queueGC++;
-                break;
-            case 'A':
-            case 'T':
-                queueAT++;
-                break;
-            default:
-                System.out.println("Unexpected base " + (char) base);
-                break;
-        }
-        final double gcRatio2Total = queueGC + queueAT;
-        final double gcRatio2 = gcRatio2Total == 0 ? 0 : queueGC / gcRatio2Total;
-
-        /*
-        Result:
-
-        Uses only the current base, plus a linked list to store the bases in the current window. No window over the
-        reference is required.
-
-        Pluses:
-        - Less copying of a window of bases into memory.
-
-        Minuses:
-        - Cannot look ahead some trailing number of bases, so only leading bases.
-        - Stateful queue of bases assumes that this instance of the walker will always be called sequentially for each
-          position. If not, then the queue of bases will not accurately reflect the leading gc content.
-         */
-
-        // END GC RATIO 2
-
-        // BEGIN GC RATIO COMP
-        if (gcRatio1Total > 0 && gcRatio2Total > 0 && Math.abs(gcRatio1 - gcRatio2) > GC_RATIO_DIFF) {
-            final String windowContent = new String(gcWindow);
-            final String queueContent = queueGCRatio.stream()
-                    .map(b -> "" + ((char) (byte) b))
-                    .reduce("" + (char) removedBase, (a, b) -> a + b);
-
-            System.out.printf("GC DIFF AT %s:%d %f/%f (%d %d %s) (%d %d %s)%n",
-                    context.getContig(), context.getStart(),
-                    gcRatio1, gcRatio2,
-                    windowGC, windowAT, windowContent,
-                    queueGC, queueAT, queueContent);
-        }
-        // END GC RATIO COMP
-
-        // BEGIN TELOMERE SEARCH
-        if (resetContig) {
-            lastForward = 0;
-            lastReverse = 0;
-        }
-
-        ref.setWindow(TELOMERE_WINDOW_LEADING_BASES, TELOMERE_WINDOW_TRAILING_BASES);
-        final byte[] telomereWindow = ref.getBases();
-
-        if (context.getStart() < TELOMERE_SEARCH ||
-                context.getEnd() > (ref.getContigLength(context.getContig()) - TELOMERE_SEARCH)) {
-            if (Arrays.equals(TELOMERE_FORWARD, Arrays.copyOf(telomereWindow, TELOMERE_FORWARD.length))) {
-                final long distanceSinceLastForward = context.getPosition() - lastForward - TELOMERE_FORWARD.length;
-                lastForward = context.getPosition();
-                System.out.printf(
-                        "FORWARD MATCH = %s:%d %d%n",
-                        context.getContig(), context.getStart(), distanceSinceLastForward);
-            }
-            if (Arrays.equals(TELOMERE_REVERSE, Arrays.copyOf(telomereWindow, TELOMERE_REVERSE.length))) {
-                final long distanceSinceLastReverse = context.getPosition() - lastReverse - TELOMERE_REVERSE.length;
-                lastReverse = context.getPosition();
-                System.out.printf("                                " +
-                                "REVERSE MATCH = %s:%d %d %f%n",
-                        context.getContig(), context.getStart(), distanceSinceLastReverse, gcRatio1);
-            }
-        }
-
-        /*
-        Result:
-        The telomere positions are in the reference, but of the two ends of the contigs, they only appeared at the
-        ends.
-
-        @HD	VN:1.5	SO:unsorted
-        @SQ	SN:20	LN:63025520	M5:0dec9660ec1efaaf33281c0d5ea2560f	UR:file:human_g1k_v37.20.21.fasta
-        @SQ	SN:21	LN:48129895	M5:2979a6085bfe28e3ad6f552f361ed74d	UR:file:human_g1k_v37.20.21.fasta
-        FORWARD MATCH = 20:62914278 3386
-        FORWARD MATCH = 20:62916416 2132
-        FORWARD MATCH = 20:62918060 1638
-        FORWARD MATCH = 20:62918066 0
-        FORWARD MATCH = 20:62918072 0
-        FORWARD MATCH = 20:62918079 1
-        FORWARD MATCH = 20:62918098 13
-        FORWARD MATCH = 20:62918104 0
-        FORWARD MATCH = 20:62918110 0
-        FORWARD MATCH = 20:62918121 5
-        ...snip...
-        FORWARD MATCH = 20:62918924 13
-        FORWARD MATCH = 20:62918930 0
-        FORWARD MATCH = 20:62918942 6
-        FORWARD MATCH = 20:62918962 14
-        FORWARD MATCH = 20:62918968 0
-        FORWARD MATCH = 20:62918980 6
-        FORWARD MATCH = 20:62929765 10779
-        ...and similar on chr21.
-
-        As the positions are reference based, we can pre-process their locations and have a separate track specifying
-        the position. That would allow searching for distance-to-the-telomeres.
-
-        Otherwise, I'm currently not sure how to dynamically know that we're "approaching a telomere". Perhaps we could
-        look ahead a certain distance for a series of telomeric repeats?
-
-        Can also make a note about how allowing zero mismatches. It's possible that more mismatches would provide better
-        telomeric matching, but could increase computational burden.
-         */
-
-        // END TELOMERE SEARCH
 
         if ('N' == base)
             return;
@@ -361,7 +187,86 @@ public final class GATKWGSMetrics extends LocusWalker {
                 .map(pe -> pe.getRead().getName())
                 .collect(Collectors.toSet());
         final int depth = Math.min(readNames.size(), COVERAGE_CAP);
+
+        ref.setWindow(gcStratifier.getLeadingBases(), gcStratifier.getTrailingBases());
+        final byte[] gcBases = ref.getBases();
+        final Object gc = gcStratifier.getStratification(gcBases);
+
+        final List<BEDFeature> mapabilityFeatures = featureContext.getValues(
+                mapabilityStratifier.getFeatureInput(),
+                mapabilityStratifier.getLeadingBases(),
+                mapabilityStratifier.getTrailingBases());
+        final Object mapability = mapabilityStratifier.getStratification(mapabilityFeatures);
+
+        // Make an empty collection here.
+        final StratifierKey referenceStratifiers = new StratifierKey();
+        referenceStratifiers.add(gc);
+        referenceStratifiers.add(mapability);
+
+        final List<StratifierKey> strats = new ArrayList<>();
+        for (final PileupElement pileupElement : context.getBasePileup()) {
+            final GATKRead read = pileupElement.getRead();
+            final Object readGroup = readGroupStratifier.getStratification(read);
+            final Object tlen = absTLenStratifier.getStratification(read);
+
+            // Concat all the different strats.
+            final StratifierKey allStratifiers = new StratifierKey(referenceStratifiers);
+            allStratifiers.add(readGroup);
+            allStratifiers.add(tlen);
+
+            // Add a new entry into the collection.
+            strats.add(allStratifiers);
+        }
+
+        // For each concat, get a total number of entries for that concat within the collection.
+        final Map<StratifierKey, Integer> stratCounts = new LinkedHashMap<>();
+        for (final StratifierKey strat : strats) {
+            stratCounts.merge(strat, 1, (acc, inc) -> acc + inc);
+        }
+
+        // Find the histogram for that concat.
+        // For that histogram, increment the depth using the total number. ex: 2 reads were found with GC 50-51 and TLEN 300-399
+        for (final Map.Entry<StratifierKey, Integer> entry : stratCounts.entrySet()) {
+            final StratifierKey stratKey = entry.getKey();
+            final int stratDepth = Math.min(entry.getValue(), COVERAGE_CAP);
+
+            final StratifierKey coverageKey = new StratifierKey(stratKey);
+            coverageKey.add(stratDepth);
+
+            increment(gatkReportTable, coverageKey, GATK_REPORT_COLUMN_COUNT);
+        }
+
+        // Move on to the next location.
+        // TODONE: Q: What to do about zeros coverage? A: What we're doing here.
+        // 1) Create a count of locations that match some composite reference stratifiers
+        // 2) Later, when counting the _read_ stratifiers, count how many locations had >=1 coverage.
+        // 3) The difference between reference-stratfiers coverage and reference-stratfiers-plus-read-stratifiers with >= 1 coverage is the number of 0 coverage.
+        increment(referenceReportTable, referenceStratifiers, GATK_REPORT_COLUMN_COUNT);
+
         histogramArray[depth]++;
+    }
+
+    private static int getRowIndex(final GATKReportTable table, final StratifierKey key) {
+        final Object[] columnValues = key.toArray();
+        int rowIndex = table.findRowByData(columnValues);
+        if (rowIndex < 0) {
+            rowIndex = table.addRowID(key, false);
+            for (int i = 0; i < key.size(); i++) {
+                table.set(rowIndex, i, key.get(i));
+            }
+        }
+        return rowIndex;
+    }
+
+    public static void increment(final GATKReportTable table, final StratifierKey key, final String columnName) {
+        final int rowIndex = getRowIndex(table, key);
+        final int colIndex = table.getColumnIndex(columnName);
+        final Object count = table.get(rowIndex, colIndex);
+        if (count == null) {
+            table.set(rowIndex, colIndex, 1);
+        } else {
+            table.set(rowIndex, colIndex, ((int) count) + 1);
+        }
     }
 
     @Override
@@ -374,6 +279,16 @@ public final class GATKWGSMetrics extends LocusWalker {
         out.addHistogram(histo);
         System.out.println(outFile.getAbsolutePath());
         out.write(outFile);
+
+        final File outTableFile = outFile.toPath().resolveSibling(outFile.getName() + ".table.txt").toFile();
+        System.out.println(outTableFile.getAbsolutePath());
+        try {
+            try (final PrintStream outTable = new PrintStream(outTableFile)) {
+                gatkReport.print(outTable);
+            }
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
         return null;
     }
 
