@@ -5,6 +5,7 @@ import org.broadinstitute.hellbender.engine.FeatureInput;
 
 import java.util.List;
 
+@SuppressWarnings("WeakerAccess")
 public class MapabilityStratifier extends FeatureStratifier<BEDFeature> {
 
     private final int binSize;
