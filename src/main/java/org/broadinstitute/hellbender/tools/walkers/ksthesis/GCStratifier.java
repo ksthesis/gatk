@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
+@SuppressWarnings("WeakerAccess")
 public class GCStratifier extends ReferenceStratifier {
 
     private final int binSize;

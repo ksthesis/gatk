@@ -38,7 +38,7 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
                         " -M " + "wgEncodeCrgMapabilityAlign36mer.subset.bed" +
-                        " -L 20:10000000-11000000 " +
+                        " -L 20:10000000-10001000 " +
                         " -RGS 2" +
                         " -O " + tempFile,
                 Collections.emptyList()

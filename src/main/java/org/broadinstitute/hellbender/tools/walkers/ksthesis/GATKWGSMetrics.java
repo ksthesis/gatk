@@ -2,6 +2,7 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 import htsjdk.samtools.metrics.MetricsFile;
 import htsjdk.samtools.util.Histogram;
+import htsjdk.tribble.Feature;
 import htsjdk.tribble.bed.BEDFeature;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
@@ -133,7 +134,7 @@ public final class GATKWGSMetrics extends LocusWalker {
     }
 
     private final GATKReport gatkReport = new GATKReport();
-    private final GATKReportTable gatkReportTable =
+    private final GATKReportTable histogramReportTable =
             new GATKReportTable("Histogram", "Histogram", 0, GATKReportTable.Sorting.SORT_BY_ROW);
     private final GATKReportTable referenceReportTable =
             new GATKReportTable("ReferenceCounts", "ReferenceCounts", 0, GATKReportTable.Sorting.SORT_BY_ROW);
@@ -141,32 +142,31 @@ public final class GATKWGSMetrics extends LocusWalker {
     private static final String GATK_REPORT_COLUMN_COVERAGE = "coverage";
     private static final String GATK_REPORT_COLUMN_COUNT = "count";
 
-    private GCStratifier gcStratifier;
+    private final List<ReferenceStratifier> referenceStratifiers = new ArrayList<>();
+    private final List<FeatureStratifier<? extends Feature>> featureStratifiers = new ArrayList<>();
+    private final List<ReadStratifier> readStratifiers = new ArrayList<>();
 
-    private MapabilityStratifier mapabilityStratifier;
-
-    private ReadGroupStratifier readGroupStratifier;
-
-    private AbsTLenStratifier absTLenStratifier;
+    private final Map<StratifierKey, Set<StratifierKey>> coverageKeys = new LinkedHashMap<>();
 
     @Override
     public void onTraversalStart() {
-        gcStratifier = new GCStratifier(gcBin, gcWindowLeadingBases, gcWindowTrailingBases);
-        mapabilityStratifier = new MapabilityStratifier(mapabilityBin, mapabilityBed);
-        readGroupStratifier = new DebugReadGroupStratifier(readGroupSplits);
-        absTLenStratifier = new AbsTLenStratifier(insertSizeBin, insertSizeMax);
+        referenceStratifiers.add(new GCStratifier(gcBin, gcWindowLeadingBases, gcWindowTrailingBases));
 
-        gatkReport.addTable(gatkReportTable);
-        addTableStratifier(gatkReportTable, gcStratifier);
-        addTableStratifier(gatkReportTable, mapabilityStratifier);
-        addTableStratifier(gatkReportTable, readGroupStratifier);
-        addTableStratifier(gatkReportTable, absTLenStratifier);
-        gatkReportTable.addColumn(GATK_REPORT_COLUMN_COVERAGE, "%d");
-        gatkReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
+        featureStratifiers.add(new MapabilityStratifier(mapabilityBin, mapabilityBed));
+
+        readStratifiers.add(new DebugReadGroupStratifier(readGroupSplits));
+        readStratifiers.add(new AbsTLenStratifier(insertSizeBin, insertSizeMax));
+
+        gatkReport.addTable(histogramReportTable);
+        referenceStratifiers.forEach(strat -> addTableStratifier(histogramReportTable, strat));
+        featureStratifiers.forEach(strat -> addTableStratifier(histogramReportTable, strat));
+        readStratifiers.forEach(strat -> addTableStratifier(histogramReportTable, strat));
+        histogramReportTable.addColumn(GATK_REPORT_COLUMN_COVERAGE, "%d");
+        histogramReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
 
         gatkReport.addTable(referenceReportTable);
-        addTableStratifier(referenceReportTable, gcStratifier);
-        addTableStratifier(referenceReportTable, mapabilityStratifier);
+        referenceStratifiers.forEach(strat -> addTableStratifier(referenceReportTable, strat));
+        featureStratifiers.forEach(strat -> addTableStratifier(referenceReportTable, strat));
         referenceReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
     }
 
@@ -188,39 +188,37 @@ public final class GATKWGSMetrics extends LocusWalker {
                 .collect(Collectors.toSet());
         final int depth = Math.min(readNames.size(), COVERAGE_CAP);
 
-        ref.setWindow(gcStratifier.getLeadingBases(), gcStratifier.getTrailingBases());
-        final byte[] gcBases = ref.getBases();
-        final Object gc = gcStratifier.getStratification(gcBases);
+        final StratifierKey referenceStratiferKey = new StratifierKey();
 
-        final List<BEDFeature> mapabilityFeatures = featureContext.getValues(
-                mapabilityStratifier.getFeatureInput(),
-                mapabilityStratifier.getLeadingBases(),
-                mapabilityStratifier.getTrailingBases());
-        final Object mapability = mapabilityStratifier.getStratification(mapabilityFeatures);
+        for (final ReferenceStratifier referenceStratifier : referenceStratifiers) {
+            final Object stratification = referenceStratifier.getStratification(ref);
+            referenceStratiferKey.add(stratification);
+        }
+
+        for (final FeatureStratifier<? extends Feature> featureStratifier : featureStratifiers) {
+            final Object stratification = featureStratifier.getStratification(featureContext);
+            referenceStratiferKey.add(stratification);
+        }
 
         // Make an empty collection here.
-        final StratifierKey referenceStratifiers = new StratifierKey();
-        referenceStratifiers.add(gc);
-        referenceStratifiers.add(mapability);
-
-        final List<StratifierKey> strats = new ArrayList<>();
+        final List<StratifierKey> stratPileup = new ArrayList<>();
         for (final PileupElement pileupElement : context.getBasePileup()) {
             final GATKRead read = pileupElement.getRead();
-            final Object readGroup = readGroupStratifier.getStratification(read);
-            final Object tlen = absTLenStratifier.getStratification(read);
 
             // Concat all the different strats.
-            final StratifierKey allStratifiers = new StratifierKey(referenceStratifiers);
-            allStratifiers.add(readGroup);
-            allStratifiers.add(tlen);
+            final StratifierKey readStratifierKey = new StratifierKey(referenceStratiferKey);
+            for (final ReadStratifier readStratifier : readStratifiers) {
+                final Object stratification = readStratifier.getStratification(read);
+                readStratifierKey.add(stratification);
+            }
 
             // Add a new entry into the collection.
-            strats.add(allStratifiers);
+            stratPileup.add(readStratifierKey);
         }
 
         // For each concat, get a total number of entries for that concat within the collection.
         final Map<StratifierKey, Integer> stratCounts = new LinkedHashMap<>();
-        for (final StratifierKey strat : strats) {
+        for (final StratifierKey strat : stratPileup) {
             stratCounts.merge(strat, 1, (acc, inc) -> acc + inc);
         }
 
@@ -233,7 +231,13 @@ public final class GATKWGSMetrics extends LocusWalker {
             final StratifierKey coverageKey = new StratifierKey(stratKey);
             coverageKey.add(stratDepth);
 
-            increment(gatkReportTable, coverageKey, GATK_REPORT_COLUMN_COUNT);
+            final Set<StratifierKey> coverageKeySet = new LinkedHashSet<>();
+            coverageKeySet.add(coverageKey);
+            coverageKeys.merge(stratKey, coverageKeySet, (acc, inc) -> {
+                acc.addAll(inc);
+                return acc;
+            });
+            increment(histogramReportTable, coverageKey, GATK_REPORT_COLUMN_COUNT);
         }
 
         // Move on to the next location.
@@ -241,7 +245,7 @@ public final class GATKWGSMetrics extends LocusWalker {
         // 1) Create a count of locations that match some composite reference stratifiers
         // 2) Later, when counting the _read_ stratifiers, count how many locations had >=1 coverage.
         // 3) The difference between reference-stratfiers coverage and reference-stratfiers-plus-read-stratifiers with >= 1 coverage is the number of 0 coverage.
-        increment(referenceReportTable, referenceStratifiers, GATK_REPORT_COLUMN_COUNT);
+        increment(referenceReportTable, referenceStratiferKey, GATK_REPORT_COLUMN_COUNT);
 
         histogramArray[depth]++;
     }
@@ -269,6 +273,35 @@ public final class GATKWGSMetrics extends LocusWalker {
         }
     }
 
+    private void addZeroRows() {
+        final int referenceStratCount = referenceStratifiers.size() + featureStratifiers.size();
+        for (final Map.Entry<StratifierKey, Set<StratifierKey>> stratifierKeySetEntry : coverageKeys.entrySet()) {
+            final StratifierKey readStratifier = stratifierKeySetEntry.getKey();
+            final Set<StratifierKey> coverageKeys = stratifierKeySetEntry.getValue();
+
+            int covered = 0;
+            for (final StratifierKey coverageKey : coverageKeys) {
+                final int rowIndex = getRowIndex(histogramReportTable, coverageKey);
+                final int count = (int) histogramReportTable.get(rowIndex, GATK_REPORT_COLUMN_COUNT);
+                covered += count;
+            }
+
+            final StratifierKey referenceKey = new StratifierKey();
+            for (int i = 0; i < referenceStratCount; i++) {
+                referenceKey.add(readStratifier.get(i));
+            }
+
+            int seenRefBases = (int) referenceReportTable.get(referenceKey, GATK_REPORT_COLUMN_COUNT);
+
+            int zeroCount = seenRefBases - covered;
+            final StratifierKey zeroKey = new StratifierKey(readStratifier);
+            zeroKey.add(0);
+            final int zeroIndex = getRowIndex(histogramReportTable, zeroKey);
+            final int colIndex = histogramReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+            histogramReportTable.set(zeroIndex, colIndex, zeroCount);
+        }
+    }
+
     @Override
     public Object onTraversalSuccess() {
         final Histogram<Integer> histo = new Histogram<>("coverage", "count");
@@ -279,6 +312,8 @@ public final class GATKWGSMetrics extends LocusWalker {
         out.addHistogram(histo);
         System.out.println(outFile.getAbsolutePath());
         out.write(outFile);
+
+        addZeroRows();
 
         final File outTableFile = outFile.toPath().resolveSibling(outFile.getName() + ".table.txt").toFile();
         System.out.println(outTableFile.getAbsolutePath());
