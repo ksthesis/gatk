@@ -3,6 +3,7 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 import java.util.ArrayList;
 import java.util.Collection;
 
+@SuppressWarnings("WeakerAccess")
 public class StratifierKey extends ArrayList<Object> implements Comparable<StratifierKey> {
 
     private static final long serialVersionUID = 1L;
