@@ -136,11 +136,15 @@ public final class GATKWGSMetrics extends LocusWalker {
     private final GATKReport gatkReport = new GATKReport();
     private final GATKReportTable histogramReportTable =
             new GATKReportTable("Histogram", "Histogram", 0, GATKReportTable.Sorting.SORT_BY_ROW);
+    private final GATKReportTable averageReportTable =
+            new GATKReportTable("Averages", "Averages", 0, GATKReportTable.Sorting.SORT_BY_ROW);
     private final GATKReportTable referenceReportTable =
             new GATKReportTable("ReferenceCounts", "ReferenceCounts", 0, GATKReportTable.Sorting.SORT_BY_ROW);
 
     private static final String GATK_REPORT_COLUMN_COVERAGE = "coverage";
     private static final String GATK_REPORT_COLUMN_COUNT = "count";
+    private static final String GATK_REPORT_COLUMN_PROBABILITY = "probability";
+    private static final String GATK_REPORT_COLUMN_AVERAGE = "average";
 
     private final List<ReferenceStratifier> referenceStratifiers = new ArrayList<>();
     private final List<FeatureStratifier<? extends Feature>> featureStratifiers = new ArrayList<>();
@@ -163,6 +167,13 @@ public final class GATKWGSMetrics extends LocusWalker {
         readStratifiers.forEach(strat -> addTableStratifier(histogramReportTable, strat));
         histogramReportTable.addColumn(GATK_REPORT_COLUMN_COVERAGE, "%d");
         histogramReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
+        histogramReportTable.addColumn(GATK_REPORT_COLUMN_PROBABILITY, "%f");
+
+        gatkReport.addTable(averageReportTable);
+        referenceStratifiers.forEach(strat -> addTableStratifier(averageReportTable, strat));
+        featureStratifiers.forEach(strat -> addTableStratifier(averageReportTable, strat));
+        readStratifiers.forEach(strat -> addTableStratifier(averageReportTable, strat));
+        averageReportTable.addColumn(GATK_REPORT_COLUMN_AVERAGE, "%f");
 
         gatkReport.addTable(referenceReportTable);
         referenceStratifiers.forEach(strat -> addTableStratifier(referenceReportTable, strat));
@@ -273,18 +284,11 @@ public final class GATKWGSMetrics extends LocusWalker {
         }
     }
 
-    private void addZeroRows() {
+    private void finalizeTables() {
         final int referenceStratCount = referenceStratifiers.size() + featureStratifiers.size();
         for (final Map.Entry<StratifierKey, Set<StratifierKey>> stratifierKeySetEntry : coverageKeys.entrySet()) {
             final StratifierKey readStratifier = stratifierKeySetEntry.getKey();
             final Set<StratifierKey> coverageKeys = stratifierKeySetEntry.getValue();
-
-            int covered = 0;
-            for (final StratifierKey coverageKey : coverageKeys) {
-                final int rowIndex = getRowIndex(histogramReportTable, coverageKey);
-                final int count = (int) histogramReportTable.get(rowIndex, GATK_REPORT_COLUMN_COUNT);
-                covered += count;
-            }
 
             final StratifierKey referenceKey = new StratifierKey();
             for (int i = 0; i < referenceStratCount; i++) {
@@ -293,12 +297,34 @@ public final class GATKWGSMetrics extends LocusWalker {
 
             int seenRefBases = (int) referenceReportTable.get(referenceKey, GATK_REPORT_COLUMN_COUNT);
 
-            int zeroCount = seenRefBases - covered;
+            int totalPileCount = 0;
+            int coveredRefBases = 0;
+            for (final StratifierKey coverageKey : coverageKeys) {
+                final int rowIndex = getRowIndex(histogramReportTable, coverageKey);
+                final int count = (int) histogramReportTable.get(rowIndex, GATK_REPORT_COLUMN_COUNT);
+                final int coverageColIndex = histogramReportTable.getColumnIndex(GATK_REPORT_COLUMN_COVERAGE);
+                final int probabilityColIndex = histogramReportTable.getColumnIndex(GATK_REPORT_COLUMN_PROBABILITY);
+                final double probability = (double)count / seenRefBases;
+                histogramReportTable.set(rowIndex, probabilityColIndex, probability);
+                final int coverage = (int) histogramReportTable.get(rowIndex, coverageColIndex);
+                totalPileCount += count * coverage;
+                coveredRefBases += count;
+            }
+
+            int averageRowIndex = getRowIndex(averageReportTable, readStratifier);
+            int averageColIndex = averageReportTable.getColumnIndex(GATK_REPORT_COLUMN_AVERAGE);
+            final double averageCoverage = (double) totalPileCount / coveredRefBases;
+            averageReportTable.set(averageRowIndex, averageColIndex, averageCoverage);
+
             final StratifierKey zeroKey = new StratifierKey(readStratifier);
             zeroKey.add(0);
             final int zeroIndex = getRowIndex(histogramReportTable, zeroKey);
-            final int colIndex = histogramReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
-            histogramReportTable.set(zeroIndex, colIndex, zeroCount);
+            final int countColIndex = histogramReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+            final int probabilityColIndex = histogramReportTable.getColumnIndex(GATK_REPORT_COLUMN_PROBABILITY);
+            final int zeroCount = seenRefBases - coveredRefBases;
+            final double probability = (double) zeroCount / seenRefBases;
+            histogramReportTable.set(zeroIndex, countColIndex, zeroCount);
+            histogramReportTable.set(zeroIndex, probabilityColIndex, probability);
         }
     }
 
@@ -313,7 +339,7 @@ public final class GATKWGSMetrics extends LocusWalker {
         System.out.println(outFile.getAbsolutePath());
         out.write(outFile);
 
-        addZeroRows();
+        finalizeTables();
 
         final File outTableFile = outFile.toPath().resolveSibling(outFile.getName() + ".table.txt").toFile();
         System.out.println(outTableFile.getAbsolutePath());
