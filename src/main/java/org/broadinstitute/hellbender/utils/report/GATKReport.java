@@ -69,6 +69,14 @@ public final class GATKReport {
             addTable(table);
     }
 
+    public GATKReport headerCopy() {
+        final GATKReport copy = new GATKReport();
+        for (final GATKReportTable table : this.getTables()) {
+            copy.addTable(table.headerCopy());
+        }
+        return copy;
+    }
+
     /**
      * Gets the unique read groups in the table
      *
