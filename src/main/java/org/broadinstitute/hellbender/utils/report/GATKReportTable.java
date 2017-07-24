@@ -225,6 +225,13 @@ public final class GATKReportTable {
         rowIdToIndex = new LinkedHashMap<>();
     }
 
+    public GATKReportTable headerCopy() {
+        final GATKReportTable copy = new GATKReportTable(this.tableName, this.tableDescription, 0, this.sortingWay);
+        copy.columnNameToIndex.putAll(this.columnNameToIndex);
+        copy.columnInfo.addAll(this.columnInfo);
+        return copy;
+    }
+
     /**
     * Verifies that a table or column name has only alphanumeric characters - no spaces or special characters allowed
     *
