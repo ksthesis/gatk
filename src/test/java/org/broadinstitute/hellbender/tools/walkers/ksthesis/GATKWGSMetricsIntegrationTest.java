@@ -37,8 +37,27 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
+                        // TODO: KSTHESIS: Actual test paths.
                         " -M " + "wgEncodeCrgMapabilityAlign36mer.subset.bed" +
-                        " -L 20:10000000-10001000 " +
+                        " -L 20:10000001-10001000 " +
+                        " -RGS 2" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetrics", this);
+    }
+
+    @Test
+    public void testGATKWGSMetricsEncode2() throws IOException {
+        final File tempFile = createTempFile("GATKWGSMetrics.", ".metrics");
+        //noinspection ResultOfMethodCallIgnored
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        // TODO: KSTHESIS: Actual test paths.
+                        " -M " + "wgEncodeCrgMapabilityAlign36mer.subset.bed" +
+                        " -L 20:10001001-10002000 " +
                         " -RGS 2" +
                         " -O " + tempFile,
                 Collections.emptyList()
