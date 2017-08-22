@@ -366,8 +366,4 @@ public final class ReferenceContext implements Iterable<Byte> {
     public byte getBase() {
         return getBases()[interval.getStart() - window.getStart()];
     }
-
-    public long getContigLength(final String contig) {
-        return dataSource.getSequenceDictionary().getSequence(contig).getSequenceLength();
-    }
 }

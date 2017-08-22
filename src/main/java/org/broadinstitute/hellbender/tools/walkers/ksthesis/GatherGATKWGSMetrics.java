@@ -15,6 +15,7 @@ import java.util.List;
         summary = "TODO",
         oneLineSummary = "TODO",
         programGroup = QCProgramGroup.class)
+@SuppressWarnings("unused")
 public class GatherGATKWGSMetrics extends CommandLineProgram {
     @Argument(fullName = StandardArgumentDefinitions.INPUT_LONG_NAME,
             shortName = StandardArgumentDefinitions.INPUT_SHORT_NAME, doc = "List of scattered BQSR report files")

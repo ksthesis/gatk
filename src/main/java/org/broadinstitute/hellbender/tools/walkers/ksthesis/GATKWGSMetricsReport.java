@@ -27,6 +27,8 @@ public class GATKWGSMetricsReport {
     private final GATKReportTable readAveragesReportTable;
     private final GATKReportTable referenceCountsReportTable;
 
+    private final Map<GATKReportTable, GATKReportIndex> tableIndexes;
+
     public GATKWGSMetricsReport(final List<ReferenceStratifier> referenceStratifiers,
                                 final List<FeatureStratifier<? extends Feature>> featureStratifiers,
                                 final List<ReadStratifier> readStratifiers) {
@@ -45,19 +47,22 @@ public class GATKWGSMetricsReport {
         readStratifiers.forEach(strat -> addTableStratifier(readCountsReportTable, strat));
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_COVERAGE, "%d");
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
-        readCountsReportTable.addColumn(GATK_REPORT_COLUMN_PROBABILITY, "%f");
+        readCountsReportTable.addColumn(GATK_REPORT_COLUMN_PROBABILITY, "%.8f");
 
         gatkReport.addTable(readAveragesReportTable);
         referenceStratifiers.forEach(strat -> addTableStratifier(readAveragesReportTable, strat));
         featureStratifiers.forEach(strat -> addTableStratifier(readAveragesReportTable, strat));
         readStratifiers.forEach(strat -> addTableStratifier(readAveragesReportTable, strat));
         readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
-        readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_AVERAGE, "%f");
+        readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_AVERAGE, "%.8f");
 
         gatkReport.addTable(referenceCountsReportTable);
         referenceStratifiers.forEach(strat -> addTableStratifier(referenceCountsReportTable, strat));
         featureStratifiers.forEach(strat -> addTableStratifier(referenceCountsReportTable, strat));
         referenceCountsReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
+
+        tableIndexes = new HashMap<>();
+        initIndexes();
     }
 
     // Loads counts, but updateAggregateStats must still be called.
@@ -69,9 +74,24 @@ public class GATKWGSMetricsReport {
         readAveragesReportTable = gatkReport.getTable(GATK_REPORT_TABLE_READ_AVERAGES);
         referenceCountsReportTable = gatkReport.getTable(GATK_REPORT_TABLE_REFERENCE_COUNTS);
 
+        tableIndexes = new HashMap<>();
+        initIndexes();
+
         // Copy over to stratifier keys.
         combineCounts(readCountsReportTable, inputReport.getTable(GATK_REPORT_TABLE_READ_COUNTS));
         combineCounts(referenceCountsReportTable, inputReport.getTable(GATK_REPORT_TABLE_REFERENCE_COUNTS));
+    }
+
+    private void initIndexes() {
+        initIndex(readCountsReportTable);
+        initIndex(readAveragesReportTable);
+        initIndex(referenceCountsReportTable);
+    }
+
+    private void initIndex(final GATKReportTable table) {
+        final int countColumnIndex = table.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        final GATKReportIndex index = new GATKReportIndex(table, countColumnIndex - 1);
+        tableIndexes.put(table, index);
     }
 
     // Combines counts, but updateAggregateStats must still be called.
@@ -124,9 +144,10 @@ public class GATKWGSMetricsReport {
 
                 totalPileCount += count * coverage;
 
-                readBaseCount += count;
+                // Recalculate zero coverage count later below.
+                if (coverage != 0)
+                    readBaseCount += count;
             }
-
 
             final int averageRowIndex = getRowIndex(readAveragesReportTable, readStratifierKey);
             final double averageCoverage = (double) totalPileCount / referenceBaseCount;
@@ -180,11 +201,7 @@ public class GATKWGSMetricsReport {
         return coverageKeys;
     }
 
-    private static void addTableStratifier(final GATKReportTable table, final Stratifier stratifier) {
-        table.addColumn(stratifier.getColumnName(), stratifier.getColumnFormat());
-    }
-
-    private static void combineCounts(final GATKReportTable acc, final GATKReportTable inc) {
+    private void combineCounts(final GATKReportTable acc, final GATKReportTable inc) {
         if (!acc.isSameFormat(inc)) {
             throw new GATKException(
                     String.format("Tables are not the same format: %s / %s", acc.getTableName(), inc.getTableName()));
@@ -201,26 +218,16 @@ public class GATKWGSMetricsReport {
         }
     }
 
-    private static int getRowIndex(final GATKReportTable table, final StratifierKey key) {
+    private int getRowIndex(final GATKReportTable table, final StratifierKey key) {
         final Object[] columnValues = key.toArray();
-        int rowIndex = table.findRowByData(columnValues);
-        if (rowIndex < 0) {
-            rowIndex = table.addRowID(key, false);
-            for (int i = 0; i < key.size(); i++) {
-                table.set(rowIndex, i, key.get(i));
-            }
-        }
-        return rowIndex;
+        final GATKReportIndex index = tableIndexes.get(table);
+        return index.findRowByData(key, columnValues);
     }
 
-    private static long getLong(final GATKReportTable table, final int rowIndex, final int columnIndex) {
-        return ((Number) table.get(rowIndex, columnIndex)).longValue();
-    }
-
-    public static void increment(final GATKReportTable table,
-                                 final StratifierKey key,
-                                 final String columnName,
-                                 final long amount) {
+    public void increment(final GATKReportTable table,
+                          final StratifierKey key,
+                          final String columnName,
+                          final long amount) {
         final int rowIndex = getRowIndex(table, key);
         final int columnIndex = table.getColumnIndex(columnName);
         final Object count = table.get(rowIndex, columnIndex);
@@ -231,4 +238,11 @@ public class GATKWGSMetricsReport {
         }
     }
 
+    private static void addTableStratifier(final GATKReportTable table, final Stratifier stratifier) {
+        table.addColumn(stratifier.getColumnName(), stratifier.getColumnFormat());
+    }
+
+    private static long getLong(final GATKReportTable table, final int rowIndex, final int columnIndex) {
+        return ((Number) table.get(rowIndex, columnIndex)).longValue();
+    }
 }
