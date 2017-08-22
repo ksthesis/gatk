@@ -75,15 +75,17 @@ public final class GATKReportColumn {
      * @param obj The object to convert to a string
      * @return The string representation of the column
      */
-    private String formatValue(final Object obj) {
+    public String formatValue(final Object obj) {
         String value;
         if (obj == null) {
             value = "null";
         }
         else if ( dataType.equals(GATKReportDataType.Unknown) && (obj instanceof Double || obj instanceof Float) ) {
             value = String.format("%.8f", obj);
-        }
-        else
+        } else if (format.length() == 2 && format.charAt(0) == '%' &&
+                (format.charAt(1) == 'd' || format.charAt(1) == 's')) {
+            value = obj.toString();
+        } else
             value = String.format(format, obj);
 
         return value;

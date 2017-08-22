@@ -306,6 +306,10 @@ public final class GATKReportTable {
         columnInfo.add(new GATKReportColumn(columnName, format));
     }
 
+    public int getColumnIndex(final String columnName) {
+        return columnNameToIndex.get(columnName);
+    }
+
     /**
      * Check if the requested cell is valid and expand the table if necessary
      *
@@ -400,40 +404,6 @@ public final class GATKReportTable {
         }
 
         set(rowIdToIndex.get(rowID), columnNameToIndex.get(columnName), prevValue + 1);
-    }
-
-    /**
-     * Returns the index of the first row matching the column values.
-     * Ex: "CountVariants", "dbsnp", "eval", "called", "all", "novel", "all"
-     *
-     * @param columnValues column values.
-     * @return The index of the first row matching the column values or -1 if no such row exists.
-     */
-    public int findRowByData(final Object... columnValues) {
-        if ( columnValues == null || columnValues.length == 0 || columnValues.length > getNumColumns() )
-            return -1;
-
-        for ( int rowIndex = 0; rowIndex < underlyingData.size(); rowIndex++ ) {
-
-            final Object[] row = underlyingData.get(rowIndex);
-
-            boolean matches = true;
-            for ( int colIndex = 0; colIndex < columnValues.length; colIndex++ ) {
-                if ( !columnValues[colIndex].equals(row[colIndex]) ) {
-                    matches = false;
-                    break;
-                }
-            }
-
-            if ( matches )
-                return rowIndex;
-        }
-
-        return -1;
-    }
-
-    public int getColumnIndex(final String columnName) {
-        return columnNameToIndex.get(columnName);
     }
 
     private Object fixType(final Object value, final GATKReportColumn column) {
@@ -584,16 +554,8 @@ public final class GATKReportTable {
             needsPadding = true;
 
             final Object obj = row[i];
-            final String value;
-
             final GATKReportColumn info = columnInfo.get(i);
-
-            if ( obj == null )
-                value = "null";
-            else if ( info.getDataType().equals(GATKReportDataType.Unknown) && (obj instanceof Double || obj instanceof Float) )
-                value = String.format("%.8f", obj);
-            else
-                value = String.format(info.getFormat(), obj);
+            final String value = info.formatValue(obj);
 
             out.printf(info.getColumnFormat().getValueFormat(), value);
         }
