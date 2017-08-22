@@ -63,37 +63,37 @@ public final class GATKWGSMetrics extends LocusWalker {
             shortName = "GCL",
             doc = "GC window leading bases, default 50",
             optional = true)
-    private final int gcWindowLeadingBases = 50;
+    public int gcWindowLeadingBases = 50;
 
     @Argument(fullName = "gcTrailing",
             shortName = "GCT",
             doc = "GC window trailing bases, default 250",
             optional = true)
-    private final int gcWindowTrailingBases = 250;
+    public int gcWindowTrailingBases = 250;
 
     @Argument(fullName = "gcBin",
             shortName = "GCB",
             doc = "GC content bin, default 2",
             optional = true)
-    private final int gcBin = 2;
+    public int gcBin = 2;
 
     @Argument(fullName = "insertSizeMax",
             shortName = "ISM",
             doc = "Insert size maximum, default 600",
             optional = true)
-    private final int insertSizeMax = 600;
+    public int insertSizeMax = 600;
 
     @Argument(fullName = "insertSizeBin",
             shortName = "ISB",
             doc = "Insert size bin, default 100",
             optional = true)
-    private final int insertSizeBin = 100;
+    public int insertSizeBin = 100;
 
     @Argument(fullName = "mapabilityBin",
             shortName = "MAPB",
             doc = "Mapability bin, default 20",
             optional = true)
-    private final int mapabilityBin = 20;
+    public int mapabilityBin = 20;
 
     @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
     public FeatureInput<BEDFeature> mapabilityBed;
@@ -101,6 +101,7 @@ public final class GATKWGSMetrics extends LocusWalker {
     @Argument(fullName = "readGroupSplits", shortName = "RGS", doc = "read group splits", optional = true)
     public Integer readGroupSplits = 0;
 
+    // Constants from CollectWgsMetrics
     private final int MINIMUM_MAPPING_QUALITY = 20;
     private final int MINIMUM_BASE_QUALITY = 20;
     private final int COVERAGE_CAP = 250;
