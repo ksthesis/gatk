@@ -1,6 +1,7 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 import htsjdk.tribble.Feature;
+import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.broadinstitute.hellbender.exceptions.GATKException;
 import org.broadinstitute.hellbender.utils.report.GATKReport;
 import org.broadinstitute.hellbender.utils.report.GATKReportTable;
@@ -20,6 +21,7 @@ public class GATKWGSMetricsReport {
     private static final String GATK_REPORT_COLUMN_COVERAGE = "coverage";
     private static final String GATK_REPORT_COLUMN_COUNT = "count";
     private static final String GATK_REPORT_COLUMN_PROBABILITY = "probability";
+    private static final String GATK_REPORT_COLUMN_POISSON = "poisson";
     private static final String GATK_REPORT_COLUMN_AVERAGE = "average";
 
     private final GATKReport gatkReport;
@@ -48,6 +50,7 @@ public class GATKWGSMetricsReport {
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_COVERAGE, "%d");
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_PROBABILITY, "%.8f");
+        readCountsReportTable.addColumn(GATK_REPORT_COLUMN_POISSON, "%.8f");
 
         gatkReport.addTable(readAveragesReportTable);
         referenceStratifiers.forEach(strat -> addTableStratifier(readAveragesReportTable, strat));
@@ -115,6 +118,7 @@ public class GATKWGSMetricsReport {
         final int countColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
         final int coverageColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COVERAGE);
         final int probabilityColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_PROBABILITY);
+        final int poissonColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_POISSON);
         final int totalColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
         final int averageColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_AVERAGE);
         final Map<StratifierKey, Set<StratifierKey>> readCoverageKeys = getReadCoverageKeys();
@@ -149,8 +153,20 @@ public class GATKWGSMetricsReport {
                     readBaseCount += count;
             }
 
-            final int averageRowIndex = getRowIndex(readAveragesReportTable, readStratifierKey);
             final double averageCoverage = (double) totalPileCount / referenceBaseCount;
+            final PoissonDistribution poissonDistribution =
+                    new PoissonDistribution(null, averageCoverage,
+                            PoissonDistribution.DEFAULT_EPSILON, PoissonDistribution.DEFAULT_MAX_ITERATIONS);
+
+            for (final StratifierKey coverageStratifierKey : coverageStratifierKeys) {
+                final int rowIndex = getRowIndex(readCountsReportTable, coverageStratifierKey);
+                final long coverage = getLong(readCountsReportTable, rowIndex, coverageColumnIndex);
+
+                final double poisson = poissonDistribution.probability((int)coverage);
+                readCountsReportTable.set(rowIndex, poissonColumnIndex, poisson);
+            }
+
+            final int averageRowIndex = getRowIndex(readAveragesReportTable, readStratifierKey);
             readAveragesReportTable.set(averageRowIndex, averageColumnIndex, averageCoverage);
             readAveragesReportTable.set(averageRowIndex, totalColumnIndex, totalPileCount);
 
@@ -161,8 +177,10 @@ public class GATKWGSMetricsReport {
                 final int zeroRowIndex = getRowIndex(readCountsReportTable, zeroStratifierKey);
                 final long zeroBaseCount = referenceBaseCount - readBaseCount;
                 final double zeroProbability = (double) zeroBaseCount / referenceBaseCount;
+                final double zeroPoisson = poissonDistribution.probability(0);
                 readCountsReportTable.set(zeroRowIndex, countColumnIndex, zeroBaseCount);
                 readCountsReportTable.set(zeroRowIndex, probabilityColumnIndex, zeroProbability);
+                readCountsReportTable.set(zeroRowIndex, poissonColumnIndex, zeroPoisson);
             }
         }
     }
