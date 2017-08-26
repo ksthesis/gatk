@@ -21,6 +21,7 @@ public class GATKWGSMetricsReport {
     private static final String GATK_REPORT_COLUMN_COVERAGE = "coverage";
     private static final String GATK_REPORT_COLUMN_COUNT = "count";
     private static final String GATK_REPORT_COLUMN_PROBABILITY = "probability";
+    private static final String GATK_REPORT_COLUMN_EXPECTED = "expected";
     private static final String GATK_REPORT_COLUMN_POISSON = "poisson";
     private static final String GATK_REPORT_COLUMN_AVERAGE = "average";
 
@@ -49,6 +50,7 @@ public class GATKWGSMetricsReport {
         readStratifiers.forEach(strat -> addTableStratifier(readCountsReportTable, strat));
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_COVERAGE, "%d");
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
+        readCountsReportTable.addColumn(GATK_REPORT_COLUMN_EXPECTED, "%d");
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_PROBABILITY, "%.8f");
         readCountsReportTable.addColumn(GATK_REPORT_COLUMN_POISSON, "%.8f");
 
@@ -115,8 +117,9 @@ public class GATKWGSMetricsReport {
 
     public void updateAggregateStats() {
         final int referenceCountsColumnIndex = referenceCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
-        final int countColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
         final int coverageColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COVERAGE);
+        final int countColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        final int expectedColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_EXPECTED);
         final int probabilityColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_PROBABILITY);
         final int poissonColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_POISSON);
         final int totalColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
@@ -163,6 +166,8 @@ public class GATKWGSMetricsReport {
                 final long coverage = getLong(readCountsReportTable, rowIndex, coverageColumnIndex);
 
                 final double poisson = poissonDistribution.probability((int)coverage);
+                final long expected = (long)(poisson * referenceBaseCount);
+                readCountsReportTable.set(rowIndex, expectedColumnIndex, expected);
                 readCountsReportTable.set(rowIndex, poissonColumnIndex, poisson);
             }
 
@@ -178,7 +183,9 @@ public class GATKWGSMetricsReport {
                 final long zeroBaseCount = referenceBaseCount - readBaseCount;
                 final double zeroProbability = (double) zeroBaseCount / referenceBaseCount;
                 final double zeroPoisson = poissonDistribution.probability(0);
+                final long zeroExpected = (long)(zeroPoisson * referenceBaseCount);
                 readCountsReportTable.set(zeroRowIndex, countColumnIndex, zeroBaseCount);
+                readCountsReportTable.set(zeroRowIndex, expectedColumnIndex, zeroExpected);
                 readCountsReportTable.set(zeroRowIndex, probabilityColumnIndex, zeroProbability);
                 readCountsReportTable.set(zeroRowIndex, poissonColumnIndex, zeroPoisson);
             }
