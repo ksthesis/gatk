@@ -165,8 +165,15 @@ public final class GATKWGSMetrics extends LocusWalker {
             referenceStratiferKey.add(stratification);
         }
 
-        // Make an empty collection here.
-        final List<StratifierKey> stratPileup = new ArrayList<>();
+        // To calculate zero coverage:
+        // 1) Create a count of locations that match the reference(+feature) stratifiers
+        // 2) Later, when counting the _read_ stratifiers, count how many locations had >=1 coverage.
+        // 3) The difference between reference-stratifiers coverage and reference-stratifiers-plus-read-stratifiers
+        //    with >= 1 coverage is the number of 0 coverage.
+        gatkReport.incrementReferenceCount(referenceStratiferKey);
+
+        // For each read stratifier key, get a total number of entries for that read stratification within the pileup.
+        final Map<StratifierKey, Integer> stratCounts = new LinkedHashMap<>();
         for (final PileupElement pileupElement : context.getBasePileup()) {
             if (pileupElement.getQual() < MINIMUM_BASE_QUALITY)
                 continue;
@@ -181,29 +188,17 @@ public final class GATKWGSMetrics extends LocusWalker {
             }
 
             // Add a new entry into the collection.
-            stratPileup.add(readStratifierKey);
+            stratCounts.merge(readStratifierKey, 1, (acc, inc) -> acc + inc);
         }
 
-        // For each concat, get a total number of entries for that concat within the collection.
-        final Map<StratifierKey, Integer> stratCounts = new LinkedHashMap<>();
-        for (final StratifierKey strat : stratPileup) {
-            stratCounts.merge(strat, 1, (acc, inc) -> acc + inc);
-        }
-
-        // Find the histogram for that concat.
-        // For that histogram, increment the depth using the total number. ex: 2 reads were found with GC 50-51 and TLEN 300-399
+        // Find the histogram rows for that stratifier key.
+        // For that histogram rows, increment the depth using the total number.
+        // ex: 2 reads were found with GC 50-51 and TLEN 300-399
         for (final Map.Entry<StratifierKey, Integer> entry : stratCounts.entrySet()) {
             final StratifierKey stratKey = entry.getKey();
             final int stratDepth = Math.min(entry.getValue(), COVERAGE_CAP);
             gatkReport.incrementReadCoverageCount(stratKey, stratDepth);
         }
-
-        // Move on to the next location.
-        // TODONE: Q: What to do about zeros coverage? A: What we're doing here.
-        // 1) Create a count of locations that match some composite reference stratifiers
-        // 2) Later, when counting the _read_ stratifiers, count how many locations had >=1 coverage.
-        // 3) The difference between reference-stratifiers coverage and reference-stratifiers-plus-read-stratifiers with >= 1 coverage is the number of 0 coverage.
-        gatkReport.incrementReferenceCount(referenceStratiferKey);
     }
 
     @Override

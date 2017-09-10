@@ -95,7 +95,7 @@ public class GATKWGSMetricsReport {
 
     private void initIndex(final GATKReportTable table) {
         final int countColumnIndex = table.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
-        final GATKReportIndex index = new GATKReportIndex(table, countColumnIndex - 1);
+        final GATKReportIndex index = GATKReportIndex.newInstance(table, countColumnIndex - 1);
         tableIndexes.put(table, index);
     }
 
