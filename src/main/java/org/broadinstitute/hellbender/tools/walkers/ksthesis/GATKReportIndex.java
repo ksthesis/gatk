@@ -6,23 +6,93 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Speeds up searching for rows by using nested lookup tables.
+ * Speeds up searching for rows.
  *
  * TODO: KSTHESIS: Contrib/move back to GATKReport?
  */
+public interface GATKReportIndex {
+    /**
+     * Returns the row index with these column values. If the row doesn't exist, the rowID is set as the row mapping,
+     * and the values are filled in for each of the column values.
+     *
+     * @param rowID        The row mapping, passed to GATKReportTable.addRowID if necessary.
+     * @param columnValues The column values for the row being searched.
+     * @return The existing or a new row index.
+     */
+    int findRowByData(final Object rowID, final Object[] columnValues);
+
+    /**
+     * Indexes a table with a single row or stratified rows.
+     *
+     * @param table          The table to index.
+     * @param rowIndexColumn The last column to index. Pass a negative value tables using a single row.
+     */
+    static GATKReportIndex newInstance(GATKReportTable table, int rowIndexColumn) {
+        if (rowIndexColumn < 0) {
+            return new SingleRowGATKReportIndex(table);
+        } else {
+            return new MultiRowGATKReportIndex(table, rowIndexColumn);
+        }
+    }
+}
+
+/**
+ * Speeds up searching for rows in a table that will have only one row.
+ */
 @SuppressWarnings("WeakerAccess")
-public class GATKReportIndex {
+class SingleRowGATKReportIndex implements GATKReportIndex {
+    private final GATKReportTable table;
+    private boolean rowCreated;
+
+    private static final int SINGLE_ROW_INDEX = 0;
+
+    /**
+     * Indexes a table with a single row.
+     *
+     * @param table The table to index.
+     */
+    public SingleRowGATKReportIndex(GATKReportTable table) {
+        this.table = table;
+        final int numRows = table.getNumRows();
+        if (numRows > 1) {
+            throw new IllegalArgumentException(
+                    String.format("Only expected a single row in %s, instead found %d rows",
+                            table.getTableName(), numRows));
+        } else {
+            rowCreated = numRows == 1;
+        }
+    }
+
+    @Override
+    public int findRowByData(Object rowID, Object[] columnValues) {
+        if (columnValues.length != 0)
+            throw new IllegalArgumentException(
+                    String.format("Key must be empty for indexing in %s, instead got length %d",
+                            table.getTableName(), columnValues.length));
+        if (!rowCreated) {
+            table.addRowID(rowID, false);
+            rowCreated = true;
+        }
+        return SINGLE_ROW_INDEX;
+    }
+}
+
+/**
+ * Speeds up searching for rows by using nested lookup tables.
+ */
+@SuppressWarnings("WeakerAccess")
+class MultiRowGATKReportIndex implements GATKReportIndex {
     private final GATKReportTable table;
     private final int rowIndexColumn;
     private final GATKReportIndexNode root;
 
     /**
-     * Indexes a table.
+     * Indexes a table with stratified rows.
      *
      * @param table          The table to index.
      * @param rowIndexColumn The last column to index.
      */
-    public GATKReportIndex(GATKReportTable table, int rowIndexColumn) {
+    public MultiRowGATKReportIndex(GATKReportTable table, int rowIndexColumn) {
         this.table = table;
         this.rowIndexColumn = rowIndexColumn;
         this.root = new GATKReportIndexNode(table);
@@ -43,14 +113,7 @@ public class GATKReportIndex {
         }
     }
 
-    /**
-     * Returns the row with these column values. If the row doesn't exist, the rowID is set as the row mapping, and
-     * the values are filled in for each of the column values.
-     *
-     * @param rowID The row mapping, passed to GATKReportTable.addRowID if necessary.
-     * @param columnValues The column values for the row being searched.
-     * @return The existing or a new row ID.
-     */
+    @Override
     public int findRowByData(final Object rowID, final Object[] columnValues) {
         if (columnValues.length != (rowIndexColumn + 1))
             throw new IllegalArgumentException(
