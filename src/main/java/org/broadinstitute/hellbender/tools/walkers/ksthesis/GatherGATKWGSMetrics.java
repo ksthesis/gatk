@@ -30,34 +30,29 @@ public class GatherGATKWGSMetrics extends CommandLineProgram {
         inputs.forEach(IOUtil::assertFileIsReadable);
 
         if (inputs.size() <= 0) {
-            dump("No inputs specified.");
+            logger.info("No inputs specified.");
             return 0;
         }
 
         IOUtil.assertFileIsWritable(output);
 
-        dump(String.format("Loading 1 of %d: %s", inputs.size(), inputs.get(0)));
+        logger.info("Loading 1 of %d: %s", inputs.size(), inputs.get(0));
         final GATKWGSMetricsReport acc = new GATKWGSMetricsReport(inputs.get(0));
 
         for (int i = 1; i < inputs.size(); i++) {
-            dump(String.format("Merging %d: %s", (i + 1), inputs.get(i)));
+            logger.info("Merging %d: %s", (i + 1), inputs.get(i));
             final GATKWGSMetricsReport inc = new GATKWGSMetricsReport(inputs.get(i));
             acc.combineCounts(inc);
         }
 
-        dump("Generating aggregate statistics");
+        logger.info("Generating aggregate statistics");
         acc.updateAggregateStats();
 
-        dump(String.format("Writing output: %s", output));
+        logger.info("Writing output: %s", output);
         acc.print(output);
 
-        dump("Done");
+        logger.info("Done");
 
         return 0;
-    }
-
-    // TODO: KSTHESIS: Stop using dump
-    private void dump(final String s) {
-        System.out.println(s);
     }
 }
