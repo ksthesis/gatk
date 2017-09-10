@@ -14,80 +14,74 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     private static final Path TEST_DATA_DIR = getTestDataDir().toPath().resolve("walkers/ksthesis");
 
     @Test
-    public void testGATKWGSMetrics() throws IOException {
-        final File tempFile = createTempFile("GATKWGSMetrics.", ".metrics");
+    public void testGATKWGSMetricsDefaults() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsDefaults.", ".txt");
         //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
+                        " -L 20:10000001-10001000 " +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
-        testSpec.executeTest("testGATKWGSMetrics", this);
-        final Path expectedFile = TEST_DATA_DIR.resolve("expected.testGATKWGSMetrics.metrics");
+        testSpec.executeTest("testGATKWGSMetricsDefaults", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsDefaults.txt");
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile(), "#");
     }
 
     @Test
-    public void testGATKWGSMetricsEncode() throws IOException {
-        final File tempFile = createTempFile("GATKWGSMetrics.", ".metrics");
+    public void testGATKWGSMetricsRgOnly() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsRgOnly.", ".txt");
         //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
-                        // TODO: KSTHESIS: Actual test paths.
-                        " -M " + "wgEncodeCrgMapabilityAlign36mer.subset.bed" +
                         " -L 20:10000001-10001000 " +
-                        " -RGS 2" +
+                        " -GCB 101 " +
+                        " -ISB 601 " +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
-        testSpec.executeTest("testGATKWGSMetrics", this);
+        testSpec.executeTest("testGATKWGSMetricsRgOnly", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsRgOnly.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
+    @Test
+    public void testGATKWGSMetricsEncode1() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsEncode1.", ".txt");
+        //noinspection ResultOfMethodCallIgnored
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
+                        " -L 20:10000001-10001000 " +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsEncode1", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode1.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 
     @Test
     public void testGATKWGSMetricsEncode2() throws IOException {
-        final File tempFile = createTempFile("GATKWGSMetrics.", ".metrics");
+        final File tempFile = createTempFile("testGATKWGSMetricsEncode2.", ".txt");
         //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
-                        // TODO: KSTHESIS: Actual test paths.
-                        " -M " + "wgEncodeCrgMapabilityAlign36mer.subset.bed" +
+                        " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
                         " -L 20:10001001-10002000 " +
-                        " -RGS 2" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
-        testSpec.executeTest("testGATKWGSMetrics", this);
-    }
-
-    /**
-     * Produces a different result if reading into adaptors is allowed using a replacement method:
-     *
-     * <pre>
-     * private boolean dontIncludeReadInPileup(final GATKRead rec, final long pos) {
-     *     boolean readOverlapsPos = (rec.getStart() <= pos && pos <= rec.getEnd());
-     *     return !readOverlapsPos;
-     * }
-     * </pre>
-     */
-    @Test
-    public void testGATKWGSMetricsAdaptorCoverage() throws IOException {
-        final File tempFile = createTempFile("GATKWGSMetrics.", ".metrics");
-        //noinspection ResultOfMethodCallIgnored
-        tempFile.createNewFile();
-        IntegrationTestSpec testSpec = new IntegrationTestSpec(
-                " -R " + b37_reference_20_21 +
-                        " -I " + TEST_DATA_DIR.resolve("CEUTrio.HiSeq.WGS.b37.NA12878.4_bases_of_adaptor.bam") +
-                        " -O " + tempFile,
-                Collections.emptyList()
-        );
-        testSpec.executeTest("testGATKWGSMetricsAdaptorCoverage", this);
-        final Path expectedFile = TEST_DATA_DIR.resolve("expected.testGATKWGSMetrics.adaptor.metrics");
-        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile(), "#");
+        testSpec.executeTest("testGATKWGSMetricsEncode2", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode2.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 }
