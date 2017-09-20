@@ -97,6 +97,12 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public boolean filterDuplicateReads = false;
 
+    @Argument(fullName = "flattenReadGroups",
+            shortName = "FRG",
+            doc = "Flatten read groups, default false",
+            optional = true)
+    public boolean flattenReadGroups = false;
+
     @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
     public FeatureInput<BEDFeature> mapabilityBed;
 
@@ -140,7 +146,8 @@ public final class GATKWGSMetrics extends LocusWalker {
         if (mapabilityBed != null)
             featureStratifiers.add(new MapabilityStratifier(mapabilityBin, mapabilityBed));
 
-        readStratifiers.add(new ReadGroupStratifier());
+        if (!flattenReadGroups)
+            readStratifiers.add(new ReadGroupStratifier());
         readStratifiers.add(new AbsTLenStratifier(insertSizeBin, insertSizeMax));
 
         gatkReport = new GATKWGSMetricsReport(referenceStratifiers, featureStratifiers, readStratifiers);

@@ -31,7 +31,7 @@ public final class ReadGroupBlackListReadFilter extends ReadFilter implements Se
     public static final String FILTER_ENTRY_SEPARATOR = ":";
 
     @Argument(fullName= ReadFilterArgumentDefinitions.READ_GROUP_BLACK_LIST_LONG_NAME, doc="The name of the read group to filter out", optional=false)
-    public List<String> blackList = new ArrayList<>();
+    public List<String> blackLists = new ArrayList<>();
 
     //most of the collection Entry classes are not serializable so just use a Map
     private final Map<String, Collection<String>> blacklistEntries = new HashMap<>();
@@ -47,17 +47,25 @@ public final class ReadGroupBlackListReadFilter extends ReadFilter implements Se
      */
     public ReadGroupBlackListReadFilter(final List<String> blackLists, final SAMFileHeader header) {
         super.setHeader(header);
-        this.blackList.addAll(blackLists);
-        final Map<String, Collection<String>> filters = new TreeMap<>();
-        for (String blackList : blackLists) {
-            try {
-                addFilter(filters, blackList, null, 0);
-            } catch (IOException e) {
-                throw new UserException("Incorrect blacklist:" + blackList, e);
+        this.blackLists.addAll(blackLists);
+    }
+
+    private boolean initialized = false;
+
+    private void init() {
+        if (!initialized) {
+            initialized = true;
+            final Map<String, Collection<String>> filters = new TreeMap<>();
+            for (String blackList : blackLists) {
+                try {
+                    addFilter(filters, blackList, null, 0);
+                } catch (IOException e) {
+                    throw new UserException("Incorrect blacklist:" + blackList, e);
+                }
             }
+            //merge all the new entries in to the blacklist
+            filters.forEach((k, v) -> blacklistEntries.merge(k, v, (v1, v2) -> {v1.addAll(v2); return v1;}));
         }
-        //merge all the new entries in to the blacklist
-        filters.forEach((k, v) -> blacklistEntries.merge(k, v, (v1, v2) -> {v1.addAll(v2); return v1;}));
     }
 
     private void addFilter(final Map<String, Collection<String>> filters, final String filter, final File parentFile, final int parentLineNum) throws IOException {
@@ -108,6 +116,7 @@ public final class ReadGroupBlackListReadFilter extends ReadFilter implements Se
 
     @Override
     public boolean test( final GATKRead read ) {
+        init();
         final SAMReadGroupRecord readGroup = ReadUtils.getSAMReadGroupRecord(read, samHeader);
         if ( readGroup == null ) {
             return true;
