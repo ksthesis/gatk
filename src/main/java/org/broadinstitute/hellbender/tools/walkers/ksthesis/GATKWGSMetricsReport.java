@@ -24,6 +24,8 @@ public class GATKWGSMetricsReport {
     private static final String GATK_REPORT_COLUMN_EXPECTED = "expected";
     private static final String GATK_REPORT_COLUMN_POISSON = "poisson";
     private static final String GATK_REPORT_COLUMN_AVERAGE = "average";
+    private static final String GATK_REPORT_COLUMN_VARIANCE = "variance";
+    private static final String GATK_REPORT_COLUMN_DISPERSION = "dispersion";
 
     private final GATKReport gatkReport;
     private final GATKReportTable readCountsReportTable;
@@ -60,6 +62,8 @@ public class GATKWGSMetricsReport {
         readStratifiers.forEach(strat -> addTableStratifier(readAveragesReportTable, strat));
         readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
         readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_AVERAGE, "%.8f");
+        readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_VARIANCE, "%.8f");
+        readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_DISPERSION, "%.8f");
 
         gatkReport.addTable(referenceCountsReportTable);
         referenceStratifiers.forEach(strat -> addTableStratifier(referenceCountsReportTable, strat));
@@ -124,6 +128,8 @@ public class GATKWGSMetricsReport {
         final int poissonColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_POISSON);
         final int totalColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
         final int averageColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_AVERAGE);
+        final int varianceColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_VARIANCE);
+        final int dispersionColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_DISPERSION);
         final Map<StratifierKey, Set<StratifierKey>> readCoverageKeys = getReadCoverageKeys();
 
         for (final Map.Entry<StratifierKey, Set<StratifierKey>> stratifierKeySetEntry : readCoverageKeys.entrySet()) {
@@ -146,7 +152,7 @@ public class GATKWGSMetricsReport {
                 final long coverage = getLong(readCountsReportTable, rowIndex, coverageColumnIndex);
                 final long count = getLong(readCountsReportTable, rowIndex, countColumnIndex);
 
-                final double probability = (double) count / referenceBaseCount;
+                final double probability = safeDivide(count, referenceBaseCount);
                 readCountsReportTable.set(rowIndex, probabilityColumnIndex, probability);
 
                 totalPileCount += count * coverage;
@@ -156,24 +162,26 @@ public class GATKWGSMetricsReport {
                     readBaseCount += count;
             }
 
-            final double averageCoverage = (double) totalPileCount / referenceBaseCount;
+            final double averageCoverage = safeDivide(totalPileCount, referenceBaseCount);
             final PoissonDistribution poissonDistribution =
                     new PoissonDistribution(null, averageCoverage,
                             PoissonDistribution.DEFAULT_EPSILON, PoissonDistribution.DEFAULT_MAX_ITERATIONS);
+            double sumSquaredDiffCoverage = 0;
 
             for (final StratifierKey coverageStratifierKey : coverageStratifierKeys) {
                 final int rowIndex = getRowIndex(readCountsReportTable, coverageStratifierKey);
                 final long coverage = getLong(readCountsReportTable, rowIndex, coverageColumnIndex);
+                final long count = getLong(readCountsReportTable, rowIndex, countColumnIndex);
 
                 final double poisson = poissonDistribution.probability((int)coverage);
                 final long expected = (long)(poisson * referenceBaseCount);
                 readCountsReportTable.set(rowIndex, expectedColumnIndex, expected);
                 readCountsReportTable.set(rowIndex, poissonColumnIndex, poisson);
-            }
 
-            final int averageRowIndex = getRowIndex(readAveragesReportTable, readStratifierKey);
-            readAveragesReportTable.set(averageRowIndex, averageColumnIndex, averageCoverage);
-            readAveragesReportTable.set(averageRowIndex, totalColumnIndex, totalPileCount);
+                // Add zero coverage count later below.
+                if (coverage != 0)
+                    sumSquaredDiffCoverage += count * Math.pow(coverage - averageCoverage, 2);
+            }
 
             // All bases accounted for? Then don't add a row that says zero coverage has a zero count.
             if (referenceBaseCount != readBaseCount) {
@@ -181,14 +189,25 @@ public class GATKWGSMetricsReport {
                 zeroStratifierKey.add(0L); // When integers are read report files, they are expanded into longs
                 final int zeroRowIndex = getRowIndex(readCountsReportTable, zeroStratifierKey);
                 final long zeroBaseCount = referenceBaseCount - readBaseCount;
-                final double zeroProbability = (double) zeroBaseCount / referenceBaseCount;
+                final double zeroProbability = safeDivide(zeroBaseCount, referenceBaseCount);
                 final double zeroPoisson = poissonDistribution.probability(0);
                 final long zeroExpected = (long)(zeroPoisson * referenceBaseCount);
                 readCountsReportTable.set(zeroRowIndex, countColumnIndex, zeroBaseCount);
                 readCountsReportTable.set(zeroRowIndex, expectedColumnIndex, zeroExpected);
                 readCountsReportTable.set(zeroRowIndex, probabilityColumnIndex, zeroProbability);
                 readCountsReportTable.set(zeroRowIndex, poissonColumnIndex, zeroPoisson);
+
+                sumSquaredDiffCoverage += zeroBaseCount * Math.pow(averageCoverage, 2);
             }
+
+            final double varianceCoverage = safeDivide(sumSquaredDiffCoverage, totalPileCount);
+            final double dispersionCoverage = safeDivide(varianceCoverage, averageCoverage);
+
+            final int averageRowIndex = getRowIndex(readAveragesReportTable, readStratifierKey);
+            readAveragesReportTable.set(averageRowIndex, totalColumnIndex, totalPileCount);
+            readAveragesReportTable.set(averageRowIndex, averageColumnIndex, averageCoverage);
+            readAveragesReportTable.set(averageRowIndex, varianceColumnIndex, varianceCoverage);
+            readAveragesReportTable.set(averageRowIndex, dispersionColumnIndex, dispersionCoverage);
         }
     }
 
@@ -269,5 +288,9 @@ public class GATKWGSMetricsReport {
 
     private static long getLong(final GATKReportTable table, final int rowIndex, final int columnIndex) {
         return ((Number) table.get(rowIndex, columnIndex)).longValue();
+    }
+
+    private static double safeDivide(final double numerator, final double denominator) {
+        return denominator == 0 ? 0 : numerator / denominator;
     }
 }

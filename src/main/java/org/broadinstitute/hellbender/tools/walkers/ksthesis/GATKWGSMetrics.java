@@ -46,7 +46,7 @@ import java.util.*;
         summary = "TODO",
         oneLineSummary = "TODO",
         programGroup = QCProgramGroup.class)
-@SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused"})
+@SuppressWarnings({"FieldCanBeLocal", "WeakerAccess"})
 public final class GATKWGSMetrics extends LocusWalker {
 
     @Argument(fullName = StandardArgumentDefinitions.OUTPUT_LONG_NAME,

@@ -27,7 +27,7 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
         );
         testSpec.executeTest("testGATKWGSMetricsDefaults", this);
         final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsDefaults.txt");
-        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile(), "#");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 
     @Test
