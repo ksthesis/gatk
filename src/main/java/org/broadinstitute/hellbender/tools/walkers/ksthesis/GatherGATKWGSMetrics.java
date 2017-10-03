@@ -36,11 +36,11 @@ public class GatherGATKWGSMetrics extends CommandLineProgram {
 
         IOUtil.assertFileIsWritable(output);
 
-        logger.info("Loading 1 of %d: %s", inputs.size(), inputs.get(0));
+        logger.info("Loading 1 of {}: {}", inputs.size(), inputs.get(0));
         final GATKWGSMetricsReport acc = new GATKWGSMetricsReport(inputs.get(0));
 
         for (int i = 1; i < inputs.size(); i++) {
-            logger.info("Merging %d: %s", (i + 1), inputs.get(i));
+            logger.info("Merging {}: {}", (i + 1), inputs.get(i));
             final GATKWGSMetricsReport inc = new GATKWGSMetricsReport(inputs.get(i));
             acc.combineCounts(inc);
         }
@@ -48,7 +48,7 @@ public class GatherGATKWGSMetrics extends CommandLineProgram {
         logger.info("Generating aggregate statistics");
         acc.updateAggregateStats();
 
-        logger.info("Writing output: %s", output);
+        logger.info("Writing output: {}", output);
         acc.print(output);
 
         logger.info("Done");
