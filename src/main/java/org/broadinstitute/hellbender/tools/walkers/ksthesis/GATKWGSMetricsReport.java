@@ -200,7 +200,7 @@ public class GATKWGSMetricsReport {
                 sumSquaredDiffCoverage += zeroBaseCount * Math.pow(averageCoverage, 2);
             }
 
-            final double varianceCoverage = safeDivide(sumSquaredDiffCoverage, totalPileCount);
+            final double varianceCoverage = safeDivide(sumSquaredDiffCoverage, referenceBaseCount);
             final double dispersionCoverage = safeDivide(varianceCoverage, averageCoverage);
 
             final int averageRowIndex = getRowIndex(readAveragesReportTable, readStratifierKey);
