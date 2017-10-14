@@ -15,7 +15,7 @@ public class GCStratifier extends ReferenceStratifier {
 
     @Override
     public String getColumnName() {
-        return "GC_CONTENT";
+        return "gc_content";
     }
 
     @Override

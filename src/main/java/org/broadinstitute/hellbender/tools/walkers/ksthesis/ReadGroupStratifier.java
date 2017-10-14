@@ -6,7 +6,7 @@ public class ReadGroupStratifier extends ReadStratifier {
 
     @Override
     public String getColumnName() {
-        return "READ_GROUP";
+        return "read_group";
     }
 
     @Override

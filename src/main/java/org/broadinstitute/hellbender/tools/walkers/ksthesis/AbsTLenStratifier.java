@@ -2,6 +2,7 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 import org.broadinstitute.hellbender.utils.read.GATKRead;
 
+@SuppressWarnings("WeakerAccess")
 public class AbsTLenStratifier extends ReadStratifier {
 
     private final int binSize;
@@ -14,7 +15,7 @@ public class AbsTLenStratifier extends ReadStratifier {
 
     @Override
     public String getColumnName() {
-        return "INSERT_LENGTH";
+        return "insert_length";
     }
 
     @Override

@@ -5,7 +5,6 @@ public abstract class Stratifier {
 
     public abstract String getColumnFormat();
 
-
     protected static int bin(int value, int binSize) {
         return (value / binSize) * binSize;
     }
