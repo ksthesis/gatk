@@ -18,7 +18,7 @@ public class MapabilityStratifier extends FeatureStratifier<BEDFeature> {
 
     @Override
     public String getColumnName() {
-        return "MAPABILITY";
+        return "mapability";
     }
 
     @Override
