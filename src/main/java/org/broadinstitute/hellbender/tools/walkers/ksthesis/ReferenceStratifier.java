@@ -3,17 +3,21 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 import org.broadinstitute.hellbender.engine.ReferenceContext;
 
 // TODO: Enable a sliding reference stratifier?
-@SuppressWarnings("WeakerAccess")
-public abstract class ReferenceStratifier extends Stratifier {
-    public Object getStratification(final ReferenceContext ref) {
+@SuppressWarnings({"WeakerAccess", "UnnecessaryLocalVariable"})
+public abstract class ReferenceStratifier<T> extends Stratifier<ReferenceContext, T> {
+
+    public ReferenceStratifier(final boolean enabled, final T disabledStratifier) {
+        super(enabled, disabledStratifier);
+    }
+
+    public T getStratification(final ReferenceContext ref) {
         ref.setWindow(getLeadingBases(), getTrailingBases());
         final byte[] bases = ref.getBases();
-        //noinspection UnnecessaryLocalVariable
-        final Object stratification = getStratification(bases);
+        final T stratification = getStratification(bases);
         return stratification;
     }
 
-    public abstract Object getStratification(final byte[] bases);
+    public abstract T getStratification(final byte[] bases);
 
     public int getLeadingBases() {
         return 0;

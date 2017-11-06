@@ -1,13 +1,14 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 @SuppressWarnings("WeakerAccess")
-public class GCStratifier extends ReferenceStratifier {
+public class GCStratifier extends ReferenceStratifier<Integer> {
 
     private final int binSize;
     private final int leadingBases;
     private final int trailingBases;
 
     public GCStratifier(final int binSize, final int leadingBases, final int trailingBases) {
+        super(binSize > 0, -1);
         this.binSize = binSize;
         this.leadingBases = leadingBases;
         this.trailingBases = trailingBases;
@@ -34,7 +35,7 @@ public class GCStratifier extends ReferenceStratifier {
     }
 
     @Override
-    public Object getStratification(byte[] bases) {
+    public Integer getStratification(final byte[] bases) {
         int atContent = 0;
         int gcContent = 0;
         for (final byte base : bases) {

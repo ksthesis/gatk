@@ -46,7 +46,7 @@ import java.util.*;
         summary = "TODO",
         oneLineSummary = "TODO",
         programGroup = QCProgramGroup.class)
-@SuppressWarnings({"FieldCanBeLocal", "WeakerAccess"})
+@SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused", "unchecked"})
 public final class GATKWGSMetrics extends LocusWalker {
 
     @Argument(fullName = StandardArgumentDefinitions.OUTPUT_LONG_NAME,
@@ -119,8 +119,6 @@ public final class GATKWGSMetrics extends LocusWalker {
         defaultFilters.add(ReadFilterLibrary.PASSES_VENDOR_QUALITY_CHECK);
         defaultFilters.add(new MappingQualityReadFilter(MINIMUM_MAPPING_QUALITY));
         defaultFilters.add(new MappedPairFilter());
-        if (filterDuplicateReads)
-            defaultFilters.add(ReadFilterLibrary.NOT_DUPLICATE);
         return defaultFilters;
     }
 
@@ -135,9 +133,9 @@ public final class GATKWGSMetrics extends LocusWalker {
     }
 
     private GATKWGSMetricsReport gatkReport;
-    private final List<ReferenceStratifier> referenceStratifiers = new ArrayList<>();
-    private final List<FeatureStratifier<? extends Feature>> featureStratifiers = new ArrayList<>();
-    private final List<ReadStratifier> readStratifiers = new ArrayList<>();
+    private final List<ReferenceStratifier<?>> referenceStratifiers = new ArrayList<>();
+    private final List<FeatureStratifier<? extends Feature, ?>> featureStratifiers = new ArrayList<>();
+    private final List<ReadStratifier<?>> readStratifiers = new ArrayList<>();
 
     @Override
     public void onTraversalStart() {
@@ -146,8 +144,7 @@ public final class GATKWGSMetrics extends LocusWalker {
         if (mapabilityBed != null)
             featureStratifiers.add(new MapabilityStratifier(mapabilityBin, mapabilityBed));
 
-        if (!flattenReadGroups)
-            readStratifiers.add(new ReadGroupStratifier());
+        readStratifiers.add(new ReadGroupStratifier(flattenReadGroups));
         readStratifiers.add(new AbsTLenStratifier(insertSizeBin, insertSizeMax));
 
         gatkReport = new GATKWGSMetricsReport(referenceStratifiers, featureStratifiers, readStratifiers);
@@ -162,13 +159,13 @@ public final class GATKWGSMetrics extends LocusWalker {
 
         final StratifierKey referenceStratiferKey = new StratifierKey();
 
-        for (final ReferenceStratifier referenceStratifier : referenceStratifiers) {
-            final Object stratification = referenceStratifier.getStratification(ref);
+        for (final ReferenceStratifier<?> referenceStratifier : referenceStratifiers) {
+            final Object stratification = referenceStratifier.getEnabledStratification(ref);
             referenceStratiferKey.add(stratification);
         }
 
-        for (final FeatureStratifier<? extends Feature> featureStratifier : featureStratifiers) {
-            final Object stratification = featureStratifier.getStratification(featureContext);
+        for (final FeatureStratifier<? extends Feature, ?> featureStratifier : featureStratifiers) {
+            final Object stratification = featureStratifier.getEnabledStratification(featureContext);
             referenceStratiferKey.add(stratification);
         }
 
@@ -189,8 +186,8 @@ public final class GATKWGSMetrics extends LocusWalker {
 
             // Concat all the different strats.
             final StratifierKey readStratifierKey = new StratifierKey(referenceStratiferKey);
-            for (final ReadStratifier readStratifier : readStratifiers) {
-                final Object stratification = readStratifier.getStratification(read);
+            for (final ReadStratifier<?> readStratifier : readStratifiers) {
+                final Object stratification = readStratifier.getEnabledStratification(read);
                 readStratifierKey.add(stratification);
             }
 

@@ -34,9 +34,9 @@ public class GATKWGSMetricsReport {
 
     private final Map<GATKReportTable, GATKReportIndex> tableIndexes;
 
-    public GATKWGSMetricsReport(final List<ReferenceStratifier> referenceStratifiers,
-                                final List<FeatureStratifier<? extends Feature>> featureStratifiers,
-                                final List<ReadStratifier> readStratifiers) {
+    public GATKWGSMetricsReport(final List<ReferenceStratifier<?>> referenceStratifiers,
+                                final List<FeatureStratifier<? extends Feature, ?>> featureStratifiers,
+                                final List<ReadStratifier<?>> readStratifiers) {
         gatkReport = new GATKReport();
 
         readCountsReportTable =
@@ -282,7 +282,7 @@ public class GATKWGSMetricsReport {
         }
     }
 
-    private static void addTableStratifier(final GATKReportTable table, final Stratifier stratifier) {
+    private static void addTableStratifier(final GATKReportTable table, final Stratifier<?, ?> stratifier) {
         table.addColumn(stratifier.getColumnName(), stratifier.getColumnFormat());
     }
 

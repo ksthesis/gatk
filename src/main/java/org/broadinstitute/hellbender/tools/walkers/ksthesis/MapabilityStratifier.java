@@ -6,12 +6,13 @@ import org.broadinstitute.hellbender.engine.FeatureInput;
 import java.util.List;
 
 @SuppressWarnings("WeakerAccess")
-public class MapabilityStratifier extends FeatureStratifier<BEDFeature> {
+public class MapabilityStratifier extends FeatureStratifier<BEDFeature, Integer> {
 
     private final int binSize;
     private final FeatureInput<BEDFeature> featureInput;
 
     public MapabilityStratifier(final int binSize, final FeatureInput<BEDFeature> featureInput) {
+        super(binSize > 0, -1);
         this.binSize = binSize;
         this.featureInput = featureInput;
     }
@@ -32,7 +33,7 @@ public class MapabilityStratifier extends FeatureStratifier<BEDFeature> {
     }
 
     @Override
-    public Object getStratification(List<BEDFeature> features) {
+    public Integer getStratification(List<BEDFeature> features) {
         if (features.size() == 0) {
             return -1;
         } else {
