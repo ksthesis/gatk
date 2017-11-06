@@ -1,7 +1,7 @@
 #:GATKReport.v1.1:3
 #:GATKTable:7:249:%d:%s:%d:%d:%.8f:%.8f:%.8f:;
 #:GATKTable:ReadAverages:ReadAverages
-GC_CONTENT  READ_GROUP  INSERT_LENGTH  count  average     variance     dispersion
+gc_content  read_group  insert_length  count  average     variance     dispersion
         36  20GAV.8               400    102  1.30769231   0.77712032  0.59426848
         36  20GAV.8               300    139  1.78205128   0.86275477  0.48413577
         36  20GAV.7               400     93  1.19230769   0.56558185  0.47435897
@@ -254,7 +254,7 @@ GC_CONTENT  READ_GROUP  INSERT_LENGTH  count  average     variance     dispersio
 
 #:GATKTable:8:1200:%d:%s:%d:%d:%d:%d:%.8f:%.8f:;
 #:GATKTable:ReadCounts:ReadCounts
-GC_CONTENT  READ_GROUP  INSERT_LENGTH  coverage  count  expected  probability  poisson   
+gc_content  read_group  insert_length  coverage  count  expected  probability  poisson   
         36  20GAV.8               400         3      6         7   0.07692308  0.10079568
         36  20GAV.8               400         2     28        18   0.35897436  0.23123714
         36  20GAV.8               400         1     28        27   0.35897436  0.35365680
@@ -1458,7 +1458,7 @@ GC_CONTENT  READ_GROUP  INSERT_LENGTH  coverage  count  expected  probability  p
 
 #:GATKTable:2:7:%d:%d:;
 #:GATKTable:ReferenceCounts:ReferenceCounts
-GC_CONTENT  count
+gc_content  count
         36     78
         34    220
         32    119

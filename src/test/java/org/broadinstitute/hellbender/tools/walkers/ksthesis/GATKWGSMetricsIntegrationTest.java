@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 
+@SuppressWarnings("ResultOfMethodCallIgnored")
 public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
 
     private static final Path TEST_DATA_DIR = getTestDataDir().toPath().resolve("walkers/ksthesis");
@@ -16,7 +17,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsDefaults() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsDefaults.", ".txt");
-        //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
@@ -31,9 +31,25 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     }
 
     @Test
+    public void testGATKWGSMetricsFilterDuplicates() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsFilterDuplicates.", ".txt");
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -L 20:10000001-10001000" +
+                        " -RF NotDuplicateReadFilter" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsFilterDuplicates", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsFilterDuplicates.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
+    @Test
     public void testGATKWGSMetricsRgOnly() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsRgOnly.", ".txt");
-        //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
@@ -52,7 +68,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsRgFilter() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsRgFilter.", ".txt");
-        //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
@@ -70,7 +85,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsRgFlatten() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsRgFlatten.", ".txt");
-        //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
@@ -97,7 +111,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsEncode1() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsEncode1.", ".txt");
-        //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
@@ -115,7 +128,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsEncode2() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsEncode2.", ".txt");
-        //noinspection ResultOfMethodCallIgnored
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
