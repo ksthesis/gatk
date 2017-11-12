@@ -85,6 +85,9 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public int insertSizeBin = 100;
 
+    @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
+    public FeatureInput<BEDFeature> mapabilityBed;
+
     @Argument(fullName = "mapabilityBin",
             shortName = "MAPB",
             doc = "Mapability bin, default 20",
@@ -103,18 +106,18 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public boolean flattenReadGroups = false;
 
-    @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
-    public FeatureInput<BEDFeature> mapabilityBed;
-
     // Constants from CollectWgsMetrics
-    private final int MINIMUM_MAPPING_QUALITY = 20;
-    private final int MINIMUM_BASE_QUALITY = 20;
-    private final int COVERAGE_CAP = 250;
+    public static final int MINIMUM_MAPPING_QUALITY = 20;
+    public static final int MINIMUM_BASE_QUALITY = 20;
+    public static final int COVERAGE_CAP = 250;
 
-    // These are the default read filters from samtools
     @Override
     public List<ReadFilter> getDefaultReadFilters() {
-        final List<ReadFilter> defaultFilters = super.getDefaultReadFilters();
+        return getMetricsReadFilters(super.getDefaultReadFilters());
+    }
+
+    // These are the default read filters from samtools, minus the duplicate read filter
+    public static List<ReadFilter> getMetricsReadFilters(final List<ReadFilter> defaultFilters) {
         defaultFilters.add(ReadFilterLibrary.NOT_SECONDARY_ALIGNMENT);
         defaultFilters.add(ReadFilterLibrary.PASSES_VENDOR_QUALITY_CHECK);
         defaultFilters.add(new MappingQualityReadFilter(MINIMUM_MAPPING_QUALITY));
