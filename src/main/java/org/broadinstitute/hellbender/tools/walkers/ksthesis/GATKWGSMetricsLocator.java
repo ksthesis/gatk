@@ -54,6 +54,12 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
             optional = true)
     public File outFile = null;
 
+    @Argument(fullName = "countThreshold",
+            shortName = "CT",
+            doc = "Count threshold, default -1",
+            optional = true)
+    public int countThreshold = -1;
+
     @Argument(fullName = "gcLeading",
             shortName = "GCL",
             doc = "GC window leading bases, default 50",
@@ -143,8 +149,10 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
             count += 1;
         }
 
-        outputStream.printf("%s\t%d\t%d\t%d\t%d\t%d%n",
-                context.getContig(), context.getStart(), allCount, count, gcStrat, mapStrat);
+        if (count > countThreshold) {
+            outputStream.printf("%s\t%d\t%d\t%d\t%d\t%d%n",
+                    context.getContig(), context.getStart(), allCount, count, gcStrat, mapStrat);
+        }
     }
 
     @Override
