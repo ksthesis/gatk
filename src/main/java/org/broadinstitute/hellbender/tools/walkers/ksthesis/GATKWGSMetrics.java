@@ -5,7 +5,7 @@ import htsjdk.tribble.bed.BEDFeature;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
-import org.broadinstitute.hellbender.cmdline.programgroups.QCProgramGroup;
+import org.broadinstitute.hellbender.cmdline.programgroups.CoverageAnalysisProgramGroup;
 import org.broadinstitute.hellbender.engine.*;
 import org.broadinstitute.hellbender.engine.filters.MappingQualityReadFilter;
 import org.broadinstitute.hellbender.engine.filters.ReadFilter;
@@ -45,7 +45,7 @@ import java.util.*;
 @CommandLineProgramProperties(
         summary = "TODO",
         oneLineSummary = "TODO",
-        programGroup = QCProgramGroup.class)
+        programGroup = CoverageAnalysisProgramGroup.class)
 @SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused", "unchecked"})
 public final class GATKWGSMetrics extends LocusWalker {
 
