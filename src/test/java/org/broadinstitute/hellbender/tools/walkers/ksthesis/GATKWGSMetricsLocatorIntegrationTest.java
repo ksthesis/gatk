@@ -66,4 +66,42 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
         final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsLocatorEncode.txt");
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
+
+    @Test
+    public void testGATKWGSMetricsLocatorCountZeros() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsLocatorCountZeros.", ".txt");
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -L 20:9999899-9999904" +
+                        " -EZCL" +
+                        " -CT 99999" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsLocatorCountZeros", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsLocatorCountZeros.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
+    @Test
+    public void testGATKWGSMetricsLocatorCountThresholdAndZeros() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsLocatorCountThresholdAndZeros.", ".txt");
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -L 20:9999899-10001000" +
+                        " -EZCL" +
+                        " -GCF 34" +
+                        " -CT 99" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsLocatorCountThresholdAndZeros", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsLocatorCountThresholdAndZeros.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
 }
