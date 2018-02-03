@@ -93,6 +93,12 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
             optional = true)
     public int mapabilityBin = 20;
 
+    @Argument(fullName = "emitZeroCoverageLocs",
+            shortName = "EZCL",
+            doc = "Emit locations with zero coverage.",
+            optional = true)
+    public boolean emitZeroCoverageLocs = false;
+
     @Override
     public List<ReadFilter> getDefaultReadFilters() {
         return GATKWGSMetrics.getMetricsReadFilters(super.getDefaultReadFilters());
@@ -135,21 +141,33 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
             return;
 
         final int gcStrat = gcStratifier.getEnabledStratification(ref);
-        if (gcStrat != gcFilter)
+        if (gcFilter > -1 && gcStrat != gcFilter)
             return;
 
         final int mapStrat = mapabilityBed != null ? mapabilityStratifier.getEnabledStratification(featureContext) : -1;
 
         int allCount = 0;
         int count = 0;
-        for (final PileupElement pileupElement : context.getBasePileup()) {
-            allCount += 1;
-            if (pileupElement.getQual() < GATKWGSMetrics.MINIMUM_BASE_QUALITY)
-                continue;
-            count += 1;
+        boolean printLocInfo = false;
+
+        final int pileupSize = context.getBasePileup().size();
+
+        // Don't even try to count if there are not enough reads to meet the threshold.
+        if (pileupSize > countThreshold) {
+            for (final PileupElement pileupElement : context.getBasePileup()) {
+                allCount += 1;
+                if (pileupElement.getQual() < GATKWGSMetrics.MINIMUM_BASE_QUALITY)
+                    continue;
+                count += 1;
+            }
+
+            if (count > countThreshold)
+                printLocInfo = true;
+        } else if (emitZeroCoverageLocs && pileupSize == 0) {
+            printLocInfo = true;
         }
 
-        if (count > countThreshold) {
+        if (printLocInfo) {
             outputStream.printf("%s\t%d\t%d\t%d\t%d\t%d%n",
                     context.getContig(), context.getStart(), allCount, count, gcStrat, mapStrat);
         }
