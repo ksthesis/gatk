@@ -24,6 +24,7 @@ public class GATKWGSMetricsReport {
     private static final String GATK_REPORT_COLUMN_EXPECTED = "expected";
     private static final String GATK_REPORT_COLUMN_POISSON = "poisson";
     private static final String GATK_REPORT_COLUMN_AVERAGE = "average";
+    private static final String GATK_REPORT_COLUMN_MEDIAN = "median";
     private static final String GATK_REPORT_COLUMN_VARIANCE = "variance";
     private static final String GATK_REPORT_COLUMN_DISPERSION = "dispersion";
 
@@ -61,6 +62,7 @@ public class GATKWGSMetricsReport {
         featureStratifiers.forEach(strat -> addTableStratifier(readAveragesReportTable, strat));
         readStratifiers.forEach(strat -> addTableStratifier(readAveragesReportTable, strat));
         readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_COUNT, "%d");
+        readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_MEDIAN, "%d");
         readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_AVERAGE, "%.8f");
         readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_VARIANCE, "%.8f");
         readAveragesReportTable.addColumn(GATK_REPORT_COLUMN_DISPERSION, "%.8f");
@@ -127,14 +129,18 @@ public class GATKWGSMetricsReport {
         final int probabilityColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_PROBABILITY);
         final int poissonColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_POISSON);
         final int totalColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        final int medianColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_MEDIAN);
         final int averageColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_AVERAGE);
         final int varianceColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_VARIANCE);
         final int dispersionColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_DISPERSION);
-        final Map<StratifierKey, Set<StratifierKey>> readCoverageKeys = getReadCoverageKeys();
+        final Map<StratifierKey, SortedSet<StratifierKey>> readCoverageKeys = getReadCoverageKeys();
 
-        for (final Map.Entry<StratifierKey, Set<StratifierKey>> stratifierKeySetEntry : readCoverageKeys.entrySet()) {
+        for (final Map.Entry<StratifierKey, SortedSet<StratifierKey>> stratifierKeySetEntry
+                : readCoverageKeys.entrySet()) {
+
             final StratifierKey readStratifierKey = stratifierKeySetEntry.getKey();
-            final Set<StratifierKey> coverageStratifierKeys = stratifierKeySetEntry.getValue();
+
+            final SortedSet<StratifierKey> coverageStratifierKeys = stratifierKeySetEntry.getValue();
 
             final StratifierKey referenceStratifierKey = new StratifierKey();
             for (int i = 0; i < referenceCountsColumnIndex; i++) {
@@ -147,6 +153,8 @@ public class GATKWGSMetricsReport {
 
             long readBaseCount = 0;
             long totalPileCount = 0;
+            long medianCoverageCounter = referenceBaseCount;
+            long medianCoverage = -1;
             for (final StratifierKey coverageStratifierKey : coverageStratifierKeys) {
                 final int rowIndex = getRowIndex(readCountsReportTable, coverageStratifierKey);
                 final long coverage = getLong(readCountsReportTable, rowIndex, coverageColumnIndex);
@@ -157,10 +165,18 @@ public class GATKWGSMetricsReport {
 
                 totalPileCount += count * coverage;
 
+                // The coverage stratifier keys will be in reverse order. Keep subtracting until we pass the median.
+                medianCoverageCounter -= count;
+                if (medianCoverage < 0 && medianCoverageCounter <= (referenceBaseCount / 2))
+                    medianCoverage = coverage;
+
                 // Recalculate zero coverage count later below.
                 if (coverage != 0)
                     readBaseCount += count;
             }
+
+            if (medianCoverage < 0)
+                medianCoverage = 0;
 
             final double averageCoverage = safeDivide(totalPileCount, referenceBaseCount);
             final PoissonDistribution poissonDistribution =
@@ -205,6 +221,7 @@ public class GATKWGSMetricsReport {
 
             final int averageRowIndex = getRowIndex(readAveragesReportTable, readStratifierKey);
             readAveragesReportTable.set(averageRowIndex, totalColumnIndex, totalPileCount);
+            readAveragesReportTable.set(averageRowIndex, medianColumnIndex, medianCoverage);
             readAveragesReportTable.set(averageRowIndex, averageColumnIndex, averageCoverage);
             readAveragesReportTable.set(averageRowIndex, varianceColumnIndex, varianceCoverage);
             readAveragesReportTable.set(averageRowIndex, dispersionColumnIndex, dispersionCoverage);
@@ -221,8 +238,13 @@ public class GATKWGSMetricsReport {
         }
     }
 
-    private Map<StratifierKey, Set<StratifierKey>> getReadCoverageKeys() {
-        final Map<StratifierKey, Set<StratifierKey>> coverageKeys = new LinkedHashMap<>();
+    /**
+     * Returns the coverage keys stratified by coverage.
+     * The values are sets of stratifier keys IN REVERSE ORDER. The reverse order is useful for counting down to zero
+     * coverage while calculating the median.
+     */
+    private Map<StratifierKey, SortedSet<StratifierKey>> getReadCoverageKeys() {
+        final Map<StratifierKey, SortedSet<StratifierKey>> coverageKeys = new LinkedHashMap<>();
         final int rowCount = readCountsReportTable.getNumRows();
         final int coverageColumnIndex = readCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COVERAGE);
         for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
@@ -235,7 +257,7 @@ public class GATKWGSMetricsReport {
             final StratifierKey coverageStratifierKey = new StratifierKey(readStratifierKey);
             coverageStratifierKey.add(readCountsReportTable.get(rowIndex, coverageColumnIndex));
 
-            final Set<StratifierKey> initial = new LinkedHashSet<>();
+            final SortedSet<StratifierKey> initial = new TreeSet<>(Collections.reverseOrder());
             initial.add(coverageStratifierKey);
             coverageKeys.merge(readStratifierKey, initial, (acc, inc) -> {
                 acc.addAll(inc);

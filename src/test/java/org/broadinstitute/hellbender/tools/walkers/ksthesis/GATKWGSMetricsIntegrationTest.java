@@ -91,15 +91,15 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:10000001-10001000" +
                         " -FRG" +
-                        " --readFilter ReadGroupBlackListReadFilter" +
-                        " --blackList RG:20GAV.8" +
-                        " --blackList RG:20GAV.7" +
-                        " --blackList RG:20GAV.6" +
-                        " --blackList RG:20GAV.5" +
-                        " --blackList RG:20GAV.4" +
-                        " --blackList RG:20GAV.3" +
-                        " --blackList RG:20GAV.2" +
-                        " --blackList RG:20GAV.1" +
+                        " --read-filter ReadGroupBlackListReadFilter" +
+                        " --read-group-black-list RG:20GAV.8" +
+                        " --read-group-black-list RG:20GAV.7" +
+                        " --read-group-black-list RG:20GAV.6" +
+                        " --read-group-black-list RG:20GAV.5" +
+                        " --read-group-black-list RG:20GAV.4" +
+                        " --read-group-black-list RG:20GAV.3" +
+                        " --read-group-black-list RG:20GAV.2" +
+                        " --read-group-black-list RG:20GAV.1" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
