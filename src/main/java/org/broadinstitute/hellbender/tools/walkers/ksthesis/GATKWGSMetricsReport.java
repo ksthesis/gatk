@@ -151,8 +151,22 @@ public class GATKWGSMetricsReport {
             final long referenceBaseCount =
                     getLong(referenceCountsReportTable, referenceRowIndex, referenceCountsColumnIndex);
 
-            long readBaseCount = 0;
             long totalPileCount = 0;
+            for (final StratifierKey coverageStratifierKey : coverageStratifierKeys) {
+                final int rowIndex = getRowIndex(readCountsReportTable, coverageStratifierKey);
+                final long coverage = getLong(readCountsReportTable, rowIndex, coverageColumnIndex);
+                final long count = getLong(readCountsReportTable, rowIndex, countColumnIndex);
+
+                totalPileCount += count * coverage;
+            }
+
+            final double averageCoverage = safeDivide(totalPileCount, referenceBaseCount);
+            final PoissonDistribution poissonDistribution =
+                    new PoissonDistribution(null, averageCoverage,
+                            PoissonDistribution.DEFAULT_EPSILON, PoissonDistribution.DEFAULT_MAX_ITERATIONS);
+
+            long readBaseCount = 0;
+            double sumSquaredDiffCoverage = 0;
             long medianCoverageCounter = referenceBaseCount;
             long medianCoverage = -1;
             for (final StratifierKey coverageStratifierKey : coverageStratifierKeys) {
@@ -161,43 +175,28 @@ public class GATKWGSMetricsReport {
                 final long count = getLong(readCountsReportTable, rowIndex, countColumnIndex);
 
                 final double probability = safeDivide(count, referenceBaseCount);
+                final double poisson = poissonDistribution.probability((int)coverage);
+                final long expected = (long)(poisson * referenceBaseCount);
                 readCountsReportTable.set(rowIndex, probabilityColumnIndex, probability);
+                readCountsReportTable.set(rowIndex, poissonColumnIndex, poisson);
+                readCountsReportTable.set(rowIndex, expectedColumnIndex, expected);
 
-                totalPileCount += count * coverage;
+                if (coverage != 0) {
+                    // Recalculate zero coverage count later below.
+                    readBaseCount += count;
+
+                    // Add zero coverage count later below.
+                    sumSquaredDiffCoverage += count * Math.pow(coverage - averageCoverage, 2);
+                }
 
                 // The coverage stratifier keys will be in reverse order. Keep subtracting until we pass the median.
                 medianCoverageCounter -= count;
                 if (medianCoverage < 0 && medianCoverageCounter <= (referenceBaseCount / 2))
                     medianCoverage = coverage;
-
-                // Recalculate zero coverage count later below.
-                if (coverage != 0)
-                    readBaseCount += count;
             }
 
             if (medianCoverage < 0)
                 medianCoverage = 0;
-
-            final double averageCoverage = safeDivide(totalPileCount, referenceBaseCount);
-            final PoissonDistribution poissonDistribution =
-                    new PoissonDistribution(null, averageCoverage,
-                            PoissonDistribution.DEFAULT_EPSILON, PoissonDistribution.DEFAULT_MAX_ITERATIONS);
-            double sumSquaredDiffCoverage = 0;
-
-            for (final StratifierKey coverageStratifierKey : coverageStratifierKeys) {
-                final int rowIndex = getRowIndex(readCountsReportTable, coverageStratifierKey);
-                final long coverage = getLong(readCountsReportTable, rowIndex, coverageColumnIndex);
-                final long count = getLong(readCountsReportTable, rowIndex, countColumnIndex);
-
-                final double poisson = poissonDistribution.probability((int)coverage);
-                final long expected = (long)(poisson * referenceBaseCount);
-                readCountsReportTable.set(rowIndex, expectedColumnIndex, expected);
-                readCountsReportTable.set(rowIndex, poissonColumnIndex, poisson);
-
-                // Add zero coverage count later below.
-                if (coverage != 0)
-                    sumSquaredDiffCoverage += count * Math.pow(coverage - averageCoverage, 2);
-            }
 
             // All bases accounted for? Then don't add a row that says zero coverage has a zero count.
             if (referenceBaseCount != readBaseCount) {
