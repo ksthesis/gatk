@@ -4,7 +4,7 @@ import org.broadinstitute.hellbender.engine.ReferenceContext;
 
 // TODO: Enable a sliding reference stratifier?
 @SuppressWarnings({"WeakerAccess", "UnnecessaryLocalVariable"})
-public abstract class ReferenceStratifier<T> extends Stratifier<ReferenceContext, T> {
+public abstract class ReferenceStratifier<T> extends WindowedStratifier<ReferenceContext, T> {
 
     public ReferenceStratifier(final boolean enabled, final T disabledStratifier) {
         super(enabled, disabledStratifier);
@@ -18,12 +18,4 @@ public abstract class ReferenceStratifier<T> extends Stratifier<ReferenceContext
     }
 
     public abstract T getStratification(final byte[] bases);
-
-    public int getLeadingBases() {
-        return 0;
-    }
-
-    public int getTrailingBases() {
-        return 0;
-    }
 }

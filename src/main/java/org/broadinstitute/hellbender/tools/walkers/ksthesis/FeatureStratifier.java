@@ -7,7 +7,7 @@ import org.broadinstitute.hellbender.engine.FeatureInput;
 import java.util.List;
 
 @SuppressWarnings({"WeakerAccess", "UnnecessaryLocalVariable"})
-public abstract class FeatureStratifier<F extends Feature, T> extends Stratifier<FeatureContext, T> {
+public abstract class FeatureStratifier<F extends Feature, T> extends WindowedStratifier<FeatureContext, T> {
     public abstract FeatureInput<F> getFeatureInput();
 
     public FeatureStratifier(final boolean enabled, final T disabledStratifier) {
@@ -24,12 +24,4 @@ public abstract class FeatureStratifier<F extends Feature, T> extends Stratifier
     }
 
     public abstract T getStratification(final List<F> features);
-
-    public int getLeadingBases() {
-        return 0;
-    }
-
-    public int getTrailingBases() {
-        return 0;
-    }
 }

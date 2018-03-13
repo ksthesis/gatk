@@ -56,12 +56,33 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:10000001-10001000" +
                         " -GCB 101" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -ISM 0" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
         testSpec.executeTest("testGATKWGSMetricsRgOnly", this);
         final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsRgOnly.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
+    @Test
+    public void testGATKWGSMetricsStrandOrientation() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsStrandOrientation.", ".txt");
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -L 20:10000001-10001000" +
+                        " -GCL 50" +
+                        " -GCT 50" +
+                        " -SOS" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsStrandOrientation", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsStrandOrientation.txt");
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 
@@ -73,6 +94,8 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:10000001-10001000" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -FRG" +
                         " -O " + tempFile,
                 Collections.emptyList()
@@ -90,6 +113,8 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:10000001-10001000" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -FRG" +
                         " --read-filter ReadGroupBlackListReadFilter" +
                         " --read-group-black-list RG:20GAV.8" +
@@ -117,6 +142,8 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
                         " -I " + NA12878_20_21_WGS_bam +
                         " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
                         " -L 20:10000001-10001000" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
@@ -134,6 +161,8 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
                         " -I " + NA12878_20_21_WGS_bam +
                         " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
                         " -L 20:10001001-10002000" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );

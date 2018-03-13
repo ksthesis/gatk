@@ -4,14 +4,10 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 public class GCStratifier extends ReferenceStratifier<Integer> {
 
     private final int binSize;
-    private final int leadingBases;
-    private final int trailingBases;
 
-    public GCStratifier(final int binSize, final int leadingBases, final int trailingBases) {
+    public GCStratifier(final int binSize) {
         super(binSize > 0, -1);
         this.binSize = binSize;
-        this.leadingBases = leadingBases;
-        this.trailingBases = trailingBases;
     }
 
     @Override
@@ -22,16 +18,6 @@ public class GCStratifier extends ReferenceStratifier<Integer> {
     @Override
     public String getColumnFormat() {
         return "%d";
-    }
-
-    @Override
-    public int getLeadingBases() {
-        return leadingBases;
-    }
-
-    @Override
-    public int getTrailingBases() {
-        return trailingBases;
     }
 
     @Override

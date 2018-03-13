@@ -57,15 +57,15 @@ public final class GATKWGSMetrics extends LocusWalker {
 
     @Argument(fullName = "gcLeading",
             shortName = "GCL",
-            doc = "GC window leading bases, default 50",
+            doc = "GC window leading bases, default 75",
             optional = true)
-    public int gcWindowLeadingBases = 50;
+    public int gcWindowLeadingBases = 75;
 
     @Argument(fullName = "gcTrailing",
             shortName = "GCT",
-            doc = "GC window trailing bases, default 250",
+            doc = "GC window trailing bases, default 75",
             optional = true)
-    public int gcWindowTrailingBases = 250;
+    public int gcWindowTrailingBases = 75;
 
     @Argument(fullName = "gcBin",
             shortName = "GCB",
@@ -94,17 +94,17 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public int mapabilityBin = 20;
 
-    @Argument(fullName = "filterDuplicateReads",
-            shortName = "FDR",
-            doc = "Filter duplicate reads, default false",
-            optional = true)
-    public boolean filterDuplicateReads = false;
-
     @Argument(fullName = "flattenReadGroups",
             shortName = "FRG",
             doc = "Flatten read groups, default false",
             optional = true)
     public boolean flattenReadGroups = false;
+
+    @Argument(fullName = "strandOrientationStratifier",
+            shortName = "SOS",
+            doc = "Stratify counts by strand orientation, default false",
+            optional = true)
+    public boolean strandOrientationStratifier = false;
 
     // Constants from CollectWgsMetrics
     public static final int MINIMUM_MAPPING_QUALITY = 20;
@@ -116,12 +116,15 @@ public final class GATKWGSMetrics extends LocusWalker {
         return getMetricsReadFilters(super.getDefaultReadFilters());
     }
 
-    // These are the default read filters from samtools, minus the duplicate read filter
+    // These are the default read filters from samtools,
+    // minus the duplicate read filter & mapped pair filter,
+    // plus the mate different strand & mate on same contig
     public static List<ReadFilter> getMetricsReadFilters(final List<ReadFilter> defaultFilters) {
         defaultFilters.add(ReadFilterLibrary.NOT_SECONDARY_ALIGNMENT);
         defaultFilters.add(ReadFilterLibrary.PASSES_VENDOR_QUALITY_CHECK);
         defaultFilters.add(new MappingQualityReadFilter(MINIMUM_MAPPING_QUALITY));
-        defaultFilters.add(new MappedPairFilter());
+        defaultFilters.add(ReadFilterLibrary.MATE_DIFFERENT_STRAND);
+        defaultFilters.add(ReadFilterLibrary.MATE_ON_SAME_CONTIG_OR_NO_MAPPED_MATE);
         return defaultFilters;
     }
 
@@ -142,13 +145,17 @@ public final class GATKWGSMetrics extends LocusWalker {
 
     @Override
     public void onTraversalStart() {
-        referenceStratifiers.add(new GCStratifier(gcBin, gcWindowLeadingBases, gcWindowTrailingBases));
+        final GCStratifier gcStratifier = new GCStratifier(gcBin);
+        gcStratifier.setLeadingBases(gcWindowLeadingBases);
+        gcStratifier.setTrailingBases(gcWindowTrailingBases);
+        referenceStratifiers.add(gcStratifier);
 
         if (mapabilityBed != null)
             featureStratifiers.add(new MapabilityStratifier(mapabilityBin, mapabilityBed));
 
         readStratifiers.add(new ReadGroupStratifier(flattenReadGroups));
         readStratifiers.add(new AbsTLenStratifier(insertSizeBin, insertSizeMax));
+        readStratifiers.add(new StrandOrientationStratifier(strandOrientationStratifier));
 
         gatkReport = new GATKWGSMetricsReport(referenceStratifiers, featureStratifiers, readStratifiers);
     }
