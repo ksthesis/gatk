@@ -62,15 +62,15 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
 
     @Argument(fullName = "gcLeading",
             shortName = "GCL",
-            doc = "GC window leading bases, default 50",
+            doc = "GC window leading bases, default 75",
             optional = true)
-    public int gcWindowLeadingBases = 50;
+    public int gcWindowLeadingBases = 75;
 
     @Argument(fullName = "gcTrailing",
             shortName = "GCT",
-            doc = "GC window trailing bases, default 250",
+            doc = "GC window trailing bases, default 75",
             optional = true)
-    public int gcWindowTrailingBases = 250;
+    public int gcWindowTrailingBases = 75;
 
     @Argument(fullName = "gcBin",
             shortName = "GCB",
@@ -121,7 +121,9 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
 
     @Override
     public void onTraversalStart() {
-        gcStratifier = new GCStratifier(gcBin, gcWindowLeadingBases, gcWindowTrailingBases);
+        gcStratifier = new GCStratifier(gcBin);
+        gcStratifier.setLeadingBases(gcWindowLeadingBases);
+        gcStratifier.setTrailingBases(gcWindowTrailingBases);
 
         if (mapabilityBed != null)
             mapabilityStratifier = new MapabilityStratifier(mapabilityBin, mapabilityBed);

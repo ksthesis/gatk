@@ -23,6 +23,8 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:10000001-10001000" +
                         " -GCF 30" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
@@ -40,6 +42,8 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:10000001-10001000" +
                         " -GCF 30" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -CT 99" +
                         " -O " + tempFile,
                 Collections.emptyList()
@@ -59,6 +63,8 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
                         " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
                         " -L 20:10000001-10001000" +
                         " -GCF 30" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
@@ -76,6 +82,8 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:9999899-9999904" +
                         " -EZCL" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -CT 99999" +
                         " -O " + tempFile,
                 Collections.emptyList()
@@ -95,6 +103,8 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
                         " -L 20:9999899-10001000" +
                         " -EZCL" +
                         " -GCF 34" +
+                        " -GCL 50" +
+                        " -GCT 50" +
                         " -CT 99" +
                         " -O " + tempFile,
                 Collections.emptyList()
