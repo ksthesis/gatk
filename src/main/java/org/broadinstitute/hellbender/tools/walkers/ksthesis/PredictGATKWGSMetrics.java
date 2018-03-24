@@ -15,11 +15,17 @@ import java.util.List;
         summary = "TODO",
         oneLineSummary = "TODO",
         programGroup = CoverageAnalysisProgramGroup.class)
-@SuppressWarnings("unused")
-public class GatherGATKWGSMetrics extends CommandLineProgram {
+@SuppressWarnings({"unused", "WeakerAccess"})
+public class PredictGATKWGSMetrics extends CommandLineProgram {
     @Argument(fullName = StandardArgumentDefinitions.INPUT_LONG_NAME,
             shortName = StandardArgumentDefinitions.INPUT_SHORT_NAME, doc = "List of scattered report files")
     public final List<File> inputs = new ArrayList<>();
+
+    @Argument(fullName = "pileup", doc = "Prediction pileup size")
+    public Long pileup = null;
+
+    @Argument(fullName = "doNotAverage", doc = "Do not generate an average")
+    public boolean doNotAverage = false;
 
     @Argument(fullName = StandardArgumentDefinitions.OUTPUT_LONG_NAME,
             shortName = StandardArgumentDefinitions.OUTPUT_SHORT_NAME, doc = "File to output the gathered file to")
@@ -36,17 +42,17 @@ public class GatherGATKWGSMetrics extends CommandLineProgram {
 
         IOUtil.assertFileIsWritable(output);
 
-        logger.info("Loading 1 of {}: {}", inputs.size(), inputs.get(0));
-        final GATKWGSMetricsReport acc = new GATKWGSMetricsReport(inputs.get(0));
+        final GATKWGSPrediction acc = new GATKWGSPrediction(pileup, GATKWGSMetrics.COVERAGE_CAP);
 
-        for (int i = 1; i < inputs.size(); i++) {
-            logger.info("Merging {}: {}", (i + 1), inputs.get(i));
-            final GATKWGSMetricsReport inc = new GATKWGSMetricsReport(inputs.get(i));
-            acc.combineCounts(inc);
+        for (int i = 0; i < inputs.size(); i++) {
+            logger.info("Predicting {}: {}", (i + 1), inputs.get(i));
+            //final GATKWGSMetricsReport inc = new GATKWGSMetricsReport(inputs.get(i));
+            acc.addMetrics(inputs.get(i));
         }
-
-        logger.info("Generating aggregate statistics");
-        acc.updateAggregateStats();
+        if (!doNotAverage) {
+            logger.info("Averaging the predictions");
+            acc.addAverageMetrics();
+        }
 
         logger.info("Writing output: {}", output);
         acc.print(output);
