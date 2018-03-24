@@ -116,7 +116,7 @@ public final class GATKWGSMetrics extends LocusWalker {
         return getMetricsReadFilters(super.getDefaultReadFilters());
     }
 
-    // These are the default read filters from samtools,
+    // These are the default read filters from CollectWgsMetrics,
     // minus the duplicate read filter & mapped pair filter,
     // plus the mate different strand & mate on same contig
     public static List<ReadFilter> getMetricsReadFilters(final List<ReadFilter> defaultFilters) {

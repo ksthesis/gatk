@@ -238,6 +238,90 @@ public class GATKWGSMetricsReport {
     }
 
     /**
+     * Returns a weighted probability based on a poisson for each read stratification.
+     *
+     * @param pileup       How many read bases should be used for the prediction.
+     * @param maxCoverage The maximum coverage to predict.
+     * @return An array with predictions of size (maxCoverage + 1).
+     */
+    public double[] getPrediction(final long pileup, final int maxCoverage) {
+        final int referenceTotalColumnIndex = referenceCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        final int averageTotalColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        final int averageColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_AVERAGE);
+
+        final Map<StratifierKey, SortedSet<StratifierKey>> readAverageKeys = getReadAverageKeys();
+
+        // Get a total count of the bases covered in the reference
+        long totalBaseCount = 0;
+        long totalReferencePileCount = 0;
+        for (final Map.Entry<StratifierKey, SortedSet<StratifierKey>> stratifierKeySetEntry
+                : readAverageKeys.entrySet()) {
+            final StratifierKey referenceStratifierKey = stratifierKeySetEntry.getKey();
+            final int referenceRowIndex = getRowIndex(referenceCountsReportTable, referenceStratifierKey);
+            final long referenceBaseCount =
+                    getLong(referenceCountsReportTable, referenceRowIndex, referenceTotalColumnIndex);
+
+            totalBaseCount += referenceBaseCount;
+
+            final SortedSet<StratifierKey> averageStratifierKeys = stratifierKeySetEntry.getValue();
+            for (final StratifierKey averageStratifierKey : averageStratifierKeys) {
+                final int averageRowIndex = getRowIndex(readAveragesReportTable, averageStratifierKey);
+                final long totalPileCount = getLong(readAveragesReportTable, averageRowIndex, averageTotalColumnIndex);
+                totalReferencePileCount += totalPileCount;
+            }
+        }
+
+        // Get a scale by dividing the number of bases already piled up by the requested pileup count.
+        final double pileupScale = safeDivide(pileup, totalReferencePileCount);
+        final double[] probabilities = new double[maxCoverage + 1];
+        for (final Map.Entry<StratifierKey, SortedSet<StratifierKey>> stratifierKeySetEntry
+                : readAverageKeys.entrySet()) {
+
+            final StratifierKey referenceStratifierKey = stratifierKeySetEntry.getKey();
+
+            final SortedSet<StratifierKey> averageStratifierKeys = stratifierKeySetEntry.getValue();
+
+            final int referenceRowIndex = getRowIndex(referenceCountsReportTable, referenceStratifierKey);
+            final long referenceBaseCount =
+                    getLong(referenceCountsReportTable, referenceRowIndex, referenceTotalColumnIndex);
+            // Weight by the portion of the reference covered by this reference key.
+            final double referenceWeight = safeDivide(referenceBaseCount, totalBaseCount);
+
+            // Get the count of bases in the pile for this section of the reference.
+            long referencePileCount = 0;
+            for (final StratifierKey averageStratifierKey : averageStratifierKeys) {
+                final int averageRowIndex = getRowIndex(readAveragesReportTable, averageStratifierKey);
+                final long totalPileCount = getLong(readAveragesReportTable, averageRowIndex, averageTotalColumnIndex);
+                referencePileCount += totalPileCount;
+            }
+
+            for (final StratifierKey averageStratifierKey : averageStratifierKeys) {
+                final int averageRowIndex = getRowIndex(readAveragesReportTable, averageStratifierKey);
+                final double averageCoverage = getDouble(readAveragesReportTable, averageRowIndex, averageColumnIndex);
+
+                if (averageCoverage > 0) {
+                    final long totalPileCount =
+                            getLong(readAveragesReportTable, averageRowIndex, averageTotalColumnIndex);
+                    // Weight by the portion of the read pileup covered by this read average key.
+                    final double readWeight = safeDivide(totalPileCount, referencePileCount);
+
+                    final double scaledCoverage = averageCoverage * pileupScale;
+
+                    final PoissonDistribution poissonDistribution =
+                            new PoissonDistribution(null, scaledCoverage,
+                                    PoissonDistribution.DEFAULT_EPSILON, PoissonDistribution.DEFAULT_MAX_ITERATIONS);
+
+                    for (int coverage = 0; coverage <= maxCoverage; coverage++) {
+                        final double probability = poissonDistribution.probability(coverage);
+                        probabilities[coverage] += probability * readWeight * referenceWeight;
+                    }
+                }
+            }
+        }
+        return probabilities;
+    }
+
+    /**
      * Returns the coverage keys stratified by coverage.
      * The values are sets of stratifier keys IN REVERSE ORDER. The reverse order is useful for counting down to zero
      * coverage while calculating the median.
@@ -264,6 +348,37 @@ public class GATKWGSMetricsReport {
             });
         }
         return coverageKeys;
+    }
+
+    /**
+     * Returns the read averages keys stratified by reference.
+     * The values are sets of stratifier keys IN REVERSE ORDER. This is to stay consistent with getReadCoverageKeys().
+     */
+    private Map<StratifierKey, SortedSet<StratifierKey>> getReadAverageKeys() {
+        final Map<StratifierKey, SortedSet<StratifierKey>> averageKeys = new LinkedHashMap<>();
+        final int rowCount = readAveragesReportTable.getNumRows();
+        final int referenceCountColumnIndex = referenceCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        final int averageCountColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+            final StratifierKey referenceStratifierKey = new StratifierKey();
+            final StratifierKey averageStratifierKey = new StratifierKey();
+
+            for (int columnIndex = 0; columnIndex < averageCountColumnIndex; columnIndex++) {
+                final Object key = readAveragesReportTable.get(rowIndex, columnIndex);
+                if (columnIndex < referenceCountColumnIndex) {
+                    referenceStratifierKey.add(key);
+                }
+                averageStratifierKey.add(key);
+            }
+
+            final SortedSet<StratifierKey> initial = new TreeSet<>(Collections.reverseOrder());
+            initial.add(averageStratifierKey);
+            averageKeys.merge(referenceStratifierKey, initial, (acc, inc) -> {
+                acc.addAll(inc);
+                return acc;
+            });
+        }
+        return averageKeys;
     }
 
     private void combineCounts(final GATKReportTable acc, final GATKReportTable inc) {
@@ -309,6 +424,10 @@ public class GATKWGSMetricsReport {
 
     private static long getLong(final GATKReportTable table, final int rowIndex, final int columnIndex) {
         return ((Number) table.get(rowIndex, columnIndex)).longValue();
+    }
+
+    private static double getDouble(final GATKReportTable table, final int rowIndex, final int columnIndex) {
+        return ((Number) table.get(rowIndex, columnIndex)).doubleValue();
     }
 
     private static double safeDivide(final double numerator, final double denominator) {
