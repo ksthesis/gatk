@@ -170,4 +170,40 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
         final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode2.txt");
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
+
+    @Test
+    public void testGATKWGSMetricsLabelsEnabled() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsLabelsEnabled.", ".txt");
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -RL " + TEST_DATA_DIR.resolve("region_labels_20_10000001-10001000.bed") +
+                        " -L 20:10000001-10001000" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsLabelsEnabled", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsLabelsEnabled.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
+    @Test
+    public void testGATKWGSMetricsLabelsDisabled() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsLabelsDisabled.", ".txt");
+        tempFile.createNewFile();
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -RL " + TEST_DATA_DIR.resolve("region_labels_20_10000001-10001000.bed") +
+                        " -DRL" +
+                        " -L 20:10000001-10001000" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsLabelsDisabled", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsLabelsDisabled.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
 }
