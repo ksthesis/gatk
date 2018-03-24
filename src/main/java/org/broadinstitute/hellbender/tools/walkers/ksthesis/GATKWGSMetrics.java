@@ -94,6 +94,12 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public int mapabilityBin = 20;
 
+    @Argument(fullName = "regionLabels", shortName = "RL", doc = "region labels BED file", optional = true)
+    public FeatureInput<BEDFeature> regionLabelsBed;
+
+    @Argument(fullName = "disableRegionLabels", shortName = "DRL", doc = "disable region labels", optional = true)
+    public boolean disableRegionLabels = false;
+
     @Argument(fullName = "flattenReadGroups",
             shortName = "FRG",
             doc = "Flatten read groups, default false",
@@ -151,7 +157,10 @@ public final class GATKWGSMetrics extends LocusWalker {
         referenceStratifiers.add(gcStratifier);
 
         if (mapabilityBed != null)
-            featureStratifiers.add(new MapabilityStratifier(mapabilityBin, mapabilityBed));
+            featureStratifiers.add(new MapabilityStratifier(mapabilityBed, mapabilityBin));
+
+        if (regionLabelsBed != null)
+            featureStratifiers.add(new RegionLabelStratifier(regionLabelsBed, !disableRegionLabels));
 
         readStratifiers.add(new ReadGroupStratifier(flattenReadGroups));
         readStratifiers.add(new AbsTLenStratifier(insertSizeBin, insertSizeMax));

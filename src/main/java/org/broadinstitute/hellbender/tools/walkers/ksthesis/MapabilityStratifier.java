@@ -9,12 +9,10 @@ import java.util.List;
 public class MapabilityStratifier extends FeatureStratifier<BEDFeature, Integer> {
 
     private final int binSize;
-    private final FeatureInput<BEDFeature> featureInput;
 
-    public MapabilityStratifier(final int binSize, final FeatureInput<BEDFeature> featureInput) {
-        super(binSize > 0, -1);
+    public MapabilityStratifier(final FeatureInput<BEDFeature> featureInput, final int binSize) {
+        super(featureInput, binSize > 0, -1);
         this.binSize = binSize;
-        this.featureInput = featureInput;
     }
 
     @Override
@@ -25,11 +23,6 @@ public class MapabilityStratifier extends FeatureStratifier<BEDFeature, Integer>
     @Override
     public String getColumnFormat() {
         return "%d";
-    }
-
-    @Override
-    public FeatureInput<BEDFeature> getFeatureInput() {
-        return featureInput;
     }
 
     @Override

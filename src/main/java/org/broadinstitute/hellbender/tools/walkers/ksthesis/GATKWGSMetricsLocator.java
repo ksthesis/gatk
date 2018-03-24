@@ -126,7 +126,7 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
         gcStratifier.setTrailingBases(gcWindowTrailingBases);
 
         if (mapabilityBed != null)
-            mapabilityStratifier = new MapabilityStratifier(mapabilityBin, mapabilityBed);
+            mapabilityStratifier = new MapabilityStratifier(mapabilityBed, mapabilityBin);
 
         try {
             outputStream = new PrintStream(outFile);
