@@ -13,7 +13,6 @@ import org.broadinstitute.hellbender.engine.filters.ReadFilterLibrary;
 import org.broadinstitute.hellbender.utils.pileup.PileupElement;
 import org.broadinstitute.hellbender.utils.read.GATKRead;
 
-import java.io.File;
 import java.util.*;
 
 /**
@@ -51,9 +50,14 @@ public final class GATKWGSMetrics extends LocusWalker {
 
     @Argument(fullName = StandardArgumentDefinitions.OUTPUT_LONG_NAME,
             shortName = StandardArgumentDefinitions.OUTPUT_SHORT_NAME,
-            doc = "Output file (if not provided, defaults to STDOUT).",
+            doc = "Output report path")
+    public String outputReport = null;
+
+    @Argument(fullName = "outputCountPileup",
+            shortName = "OCP",
+            doc = "Output for the count of the pileup",
             optional = true)
-    public File outFile = null;
+    public String outputCountPileup = null;
 
     @Argument(fullName = "gcLeading",
             shortName = "GCL",
@@ -227,7 +231,11 @@ public final class GATKWGSMetrics extends LocusWalker {
     @Override
     public Object onTraversalSuccess() {
         gatkReport.updateAggregateStats();
-        gatkReport.print(outFile);
+        gatkReport.printReport(outputReport);
+        if (outputCountPileup != null) {
+            gatkReport.printCountPileup(outputCountPileup);
+        }
+
         return null;
     }
 }

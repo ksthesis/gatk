@@ -3,11 +3,13 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 import htsjdk.tribble.Feature;
 import org.apache.commons.math3.distribution.PoissonDistribution;
 import org.broadinstitute.hellbender.exceptions.GATKException;
+import org.broadinstitute.hellbender.utils.gcs.BucketUtils;
 import org.broadinstitute.hellbender.utils.report.GATKReport;
 import org.broadinstitute.hellbender.utils.report.GATKReportTable;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.*;
 
@@ -227,16 +229,6 @@ public class GATKWGSMetricsReport {
         }
     }
 
-    public void print(final File file) {
-        try {
-            try (final PrintStream outTable = new PrintStream(file)) {
-                gatkReport.print(outTable, GATKReportTable.Sorting.SORT_BY_ROW);
-            }
-        } catch (final IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
-    }
-
     /**
      * Returns a weighted probability based on a poisson for each read stratification.
      *
@@ -321,6 +313,29 @@ public class GATKWGSMetricsReport {
         return probabilities;
     }
 
+    public void printReport(final String path) {
+        try (
+                final OutputStream outputStream = BucketUtils.createFile(path);
+                final PrintStream outTable = new PrintStream(outputStream)
+        ) {
+            gatkReport.print(outTable, GATKReportTable.Sorting.SORT_BY_ROW);
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+    }
+
+    public void printCountPileup(final String path) {
+        long countPileup = getCountPileup();
+        try (
+                final OutputStream outputStream = BucketUtils.createFile(path);
+                final PrintStream printStream = new PrintStream(outputStream)
+        ) {
+            printStream.println(countPileup);
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
+    }
+
     /**
      * Returns the coverage keys stratified by coverage.
      * The values are sets of stratifier keys IN REVERSE ORDER. The reverse order is useful for counting down to zero
@@ -396,6 +411,16 @@ public class GATKWGSMetricsReport {
             final long amount = getLong(inc, rowIndex, countColumnIndex);
             increment(acc, key, GATK_REPORT_COLUMN_COUNT, amount);
         }
+    }
+
+    private long getCountPileup() {
+        final int averageTotalColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
+        long total = 0;
+        final int numRows = readAveragesReportTable.getNumRows();
+        for (int rowIndex = 0; rowIndex < numRows; rowIndex++) {
+            total += getLong(readAveragesReportTable, rowIndex, averageTotalColumnIndex);
+        }
+        return total;
     }
 
     private int getRowIndex(final GATKReportTable table, final StratifierKey key) {

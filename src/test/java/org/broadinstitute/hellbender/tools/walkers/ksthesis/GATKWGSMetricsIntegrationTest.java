@@ -2,12 +2,15 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 import org.broadinstitute.hellbender.CommandLineProgramTest;
 import org.broadinstitute.hellbender.utils.test.IntegrationTestSpec;
+import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Collections;
+import java.util.List;
 
 @SuppressWarnings("ResultOfMethodCallIgnored")
 public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
@@ -16,24 +19,27 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
 
     @Test
     public void testGATKWGSMetricsDefaults() throws IOException {
-        final File tempFile = createTempFile("testGATKWGSMetricsDefaults.", ".txt");
-        tempFile.createNewFile();
+        final File tempReportFile = createTempFile("testGATKWGSMetricsDefaults.", ".txt");
+        final File tempCountFile = createTempFile("testGATKWGSMetricsDefaults.count.", ".txt");
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
                         " -L 20:10000001-10001000" +
-                        " -O " + tempFile,
+                        " -O " + tempReportFile +
+                        " -OCP " + tempCountFile,
                 Collections.emptyList()
         );
         testSpec.executeTest("testGATKWGSMetricsDefaults", this);
         final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsDefaults.txt");
-        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+        IntegrationTestSpec.assertEqualTextFiles(tempReportFile, expectedFile.toFile());
+        final List<String> lines = Files.readAllLines(tempCountFile.toPath());
+        Assert.assertEquals(lines.size(), 1);
+        Assert.assertEquals(lines.get(0), "81255");
     }
 
     @Test
     public void testGATKWGSMetricsFilterDuplicates() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsFilterDuplicates.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -50,7 +56,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsRgOnly() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsRgOnly.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -70,7 +75,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsStrandOrientation() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsStrandOrientation.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -89,7 +93,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsRgFilter() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsRgFilter.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -108,7 +111,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsRgFlatten() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsRgFlatten.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -136,7 +138,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsEncode1() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsEncode1.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -155,7 +156,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsEncode2() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsEncode2.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -174,7 +174,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsLabelsEnabled() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsLabelsEnabled.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
@@ -191,7 +190,6 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     @Test
     public void testGATKWGSMetricsLabelsDisabled() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsLabelsDisabled.", ".txt");
-        tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
