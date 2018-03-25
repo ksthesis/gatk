@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
+import org.apache.commons.io.IOUtils;
 import org.broadinstitute.hellbender.CommandLineProgramTest;
 import org.broadinstitute.hellbender.utils.test.ArgumentsBuilder;
 import org.broadinstitute.hellbender.utils.test.BaseTest;
@@ -8,7 +9,9 @@ import org.testng.Assert;
 import org.testng.annotations.Test;
 
 import java.io.File;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 public class GatherGATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
 
@@ -22,14 +25,20 @@ public class GatherGATKWGSMetricsIntegrationTest extends CommandLineProgramTest 
         args.add("--input");
         args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode2.txt"));
 
-        final File tempFile = BaseTest.createTempFile("testGatherGATKWGSMetrics.", ".txt");
+        final File tempReportFile = BaseTest.createTempFile("testGatherGATKWGSMetrics.", ".txt");
         args.add("-O");
-        args.add(tempFile);
+        args.add(tempReportFile);
+        final File tempCountFile = BaseTest.createTempFile("testGatherGATKWGSMetrics.count.", ".txt");
+        args.add("-OCP");
+        args.add(tempCountFile);
         final Object res = this.runCommandLine(args.getArgsArray());
 
         Assert.assertEquals(res, 0);
-        final Path expectedFile = TEST_DATA_DIR.resolve("testGatherGATKWGSMetrics.txt");
-        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+        final Path expectedReportFile = TEST_DATA_DIR.resolve("testGatherGATKWGSMetrics.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempReportFile, expectedReportFile.toFile());
+        final List<String> lines = Files.readAllLines(tempCountFile.toPath());
+        Assert.assertEquals(lines.size(), 1);
+        Assert.assertEquals(lines.get(0), "164297");
     }
 
 }
