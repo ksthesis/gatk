@@ -204,4 +204,39 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 
+    @Test
+    public void testGATKWGSMetricsCoverageEnabled() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsCoverageEnabled.", ".txt");
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -COV " + TEST_DATA_DIR.resolve("testGATKWGSMetricsGeneratorDefaults.vcf") +
+                        " -COVB 10" +
+                        " -COVM 90" +
+                        " -L 20:10000001-10001000" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsCoverageEnabled", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsCoverageEnabled.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
+
+    @Test
+    public void testGATKWGSMetricsCoverageDisabled() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsCoverageDisabled.", ".txt");
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -COV " + TEST_DATA_DIR.resolve("testGATKWGSMetricsGeneratorDefaults.vcf") +
+                        " -COVB 0" +
+                        " -COVM 0" +
+                        " -L 20:10000001-10001000" +
+                        " -O " + tempFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsCoverageDisabled", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsCoverageDisabled.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
+    }
 }

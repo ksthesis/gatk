@@ -2,6 +2,7 @@ package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 import htsjdk.tribble.Feature;
 import htsjdk.tribble.bed.BEDFeature;
+import htsjdk.variant.variantcontext.VariantContext;
 import org.broadinstitute.barclay.argparser.Argument;
 import org.broadinstitute.barclay.argparser.CommandLineProgramProperties;
 import org.broadinstitute.hellbender.cmdline.StandardArgumentDefinitions;
@@ -89,6 +90,21 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public int insertSizeBin = 100;
 
+    @Argument(fullName = "coverage", shortName = "COV", doc = "coverage VCF file", optional = true)
+    public FeatureInput<VariantContext> coverageVcf;
+
+    @Argument(fullName = "coverageBin",
+            shortName = "COVB",
+            doc = "Coverage bin, default 50",
+            optional = true)
+    public int coverageBin = 50;
+
+    @Argument(fullName = "coverageMax",
+            shortName = "COVM",
+            doc = "Coverage max, default 500",
+            optional = true)
+    public int coverageMax = 500;
+
     @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
     public FeatureInput<BEDFeature> mapabilityBed;
 
@@ -159,6 +175,9 @@ public final class GATKWGSMetrics extends LocusWalker {
         gcStratifier.setLeadingBases(gcWindowLeadingBases);
         gcStratifier.setTrailingBases(gcWindowTrailingBases);
         referenceStratifiers.add(gcStratifier);
+
+        if (coverageVcf != null)
+            featureStratifiers.add(new PriorCoverageStratifier(coverageVcf, coverageBin, coverageMax));
 
         if (mapabilityBed != null)
             featureStratifiers.add(new MapabilityStratifier(mapabilityBed, mapabilityBin));
