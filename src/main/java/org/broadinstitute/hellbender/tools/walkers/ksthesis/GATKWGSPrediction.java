@@ -32,7 +32,7 @@ public class GATKWGSPrediction {
     public GATKWGSPrediction(final long pileup, final int maxCoverage) {
         this.pileup = pileup;
         this.maxCoverage = maxCoverage;
-        this.probabilityDistributions = new double[maxCoverage + 1];
+        this.probabilityDistributions = new double[maxCoverage];
 
         gatkReport = new GATKReport();
         predictionTable = new GATKReportTable(GATK_REPORT_TABLE_PREDICTION, GATK_REPORT_TABLE_PREDICTION, 0);
@@ -55,18 +55,35 @@ public class GATKWGSPrediction {
 
         final String input = file.getName();
 
-        for (int coverage = 0; coverage <= maxCoverage; coverage++) {
+        double cumulative = 0;
+        for (int coverage = 0; coverage < maxCoverage; coverage++) {
             final double probability = prediction[coverage];
             addMetric(input, coverage, probability);
             probabilityDistributions[coverage] += probability;
+            cumulative += probability;
         }
+        addMetric(input, maxCoverage, Math.max(0, 1 - cumulative));
+
         numDistributions += 1;
     }
 
     public void addAverageMetrics() {
-        for (int coverage = 0; coverage <= maxCoverage; coverage++) {
+        double cumulative = 0;
+        for (int coverage = 0; coverage < maxCoverage; coverage++) {
             final double probability = probabilityDistributions[coverage] / numDistributions;
             addMetric(AVERAGE_INPUT, coverage, probability);
+            cumulative += probability;
+        }
+        addMetric(AVERAGE_INPUT, maxCoverage, Math.max(0, 1 - cumulative));
+    }
+
+    public void print(final File file) {
+        try {
+            try (final PrintStream outTable = new PrintStream(file)) {
+                gatkReport.print(outTable, GATKReportTable.Sorting.SORT_BY_ROW);
+            }
+        } catch (final IOException ioe) {
+            throw new RuntimeException(ioe);
         }
     }
 
@@ -79,15 +96,5 @@ public class GATKWGSPrediction {
         predictionTable.set(rowIndex, inputColumnIndex, input);
         predictionTable.set(rowIndex, coverageColumnIndex, coverage);
         predictionTable.set(rowIndex, probabilityColumnIndex, probability);
-    }
-
-    public void print(final File file) {
-        try {
-            try (final PrintStream outTable = new PrintStream(file)) {
-                gatkReport.print(outTable, GATKReportTable.Sorting.SORT_BY_ROW);
-            }
-        } catch (final IOException ioe) {
-            throw new RuntimeException(ioe);
-        }
     }
 }
