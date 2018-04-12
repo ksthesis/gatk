@@ -234,7 +234,7 @@ public class GATKWGSMetricsReport {
      *
      * @param pileup       How many read bases should be used for the prediction.
      * @param maxCoverage The maximum coverage to predict.
-     * @return An array with predictions of size (maxCoverage + 1).
+     * @return An array with predictions of size maxCoverage.
      */
     public double[] getPrediction(final long pileup, final int maxCoverage) {
         final int referenceTotalColumnIndex = referenceCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
@@ -265,7 +265,7 @@ public class GATKWGSMetricsReport {
 
         // Get a scale by dividing the number of bases already piled up by the requested pileup count.
         final double pileupScale = safeDivide(pileup, totalReferencePileCount);
-        final double[] probabilities = new double[maxCoverage + 1];
+        final double[] probabilities = new double[maxCoverage];
         for (final Map.Entry<StratifierKey, SortedSet<StratifierKey>> stratifierKeySetEntry
                 : readAverageKeys.entrySet()) {
 
@@ -303,13 +303,14 @@ public class GATKWGSMetricsReport {
                             new PoissonDistribution(null, scaledCoverage,
                                     PoissonDistribution.DEFAULT_EPSILON, PoissonDistribution.DEFAULT_MAX_ITERATIONS);
 
-                    for (int coverage = 0; coverage <= maxCoverage; coverage++) {
+                    for (int coverage = 0; coverage < maxCoverage; coverage++) {
                         final double probability = poissonDistribution.probability(coverage);
                         probabilities[coverage] += probability * readWeight * referenceWeight;
                     }
                 }
             }
         }
+
         return probabilities;
     }
 

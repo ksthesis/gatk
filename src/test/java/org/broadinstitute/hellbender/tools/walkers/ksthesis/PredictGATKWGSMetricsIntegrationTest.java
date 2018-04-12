@@ -22,7 +22,7 @@ public class PredictGATKWGSMetricsIntegrationTest extends CommandLineProgramTest
         args.add("--input");
         args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode2.txt"));
         args.add("--pileup");
-        args.add(20_000L);
+        args.add(2_000_000L);
 
         final File tempFile = BaseTest.createTempFile("testPredictGATKWGSMetrics.", ".txt");
         args.add("-O");
