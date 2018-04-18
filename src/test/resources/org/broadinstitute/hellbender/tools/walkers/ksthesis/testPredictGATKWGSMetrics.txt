@@ -1,6 +1,13 @@
-#:GATKReport.v1.1:1
+#:GATKReport.v1.1:2
+#:GATKTable:7:3:%s:%d:%d:%.8f:%d:%.8f:%.8f:;
+#:GATKTable:Average:Average
+input                          reference_count  predict_pileup  predict_average  original_pileup  original_average  scale      
+-average-                                 1000         2000000    2000.00000000            82148       82.14800000  24.34630180
+testGATKWGSMetricsEncode1.txt             1000         2000000    2000.00000000            81255       81.25500000  24.61386992
+testGATKWGSMetricsEncode2.txt             1000         2000000    2000.00000000            83042       83.04200000  24.08419836
+
 #:GATKTable:3:753:%s:%d:%.8f:;
-#:GATKTable:Predictions:Predictions
+#:GATKTable:Coverage:Coverage
 input                          coverage  probability
 testGATKWGSMetricsEncode2.txt       250   0.00000003
 testGATKWGSMetricsEncode2.txt       249   0.00000001
