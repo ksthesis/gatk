@@ -236,7 +236,7 @@ public class GATKWGSMetricsReport {
      * @param maxCoverage The maximum coverage to predict.
      * @return An array with predictions of size maxCoverage.
      */
-    public double[] getPrediction(final long pileup, final int maxCoverage) {
+    public CoveragePrediction getPrediction(final long pileup, final int maxCoverage) {
         final int referenceTotalColumnIndex = referenceCountsReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
         final int averageTotalColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_COUNT);
         final int averageColumnIndex = readAveragesReportTable.getColumnIndex(GATK_REPORT_COLUMN_AVERAGE);
@@ -311,7 +311,7 @@ public class GATKWGSMetricsReport {
             }
         }
 
-        return probabilities;
+        return new CoveragePrediction(totalBaseCount, pileup, totalReferencePileCount, probabilities);
     }
 
     public void printReport(final String path) {
