@@ -19,11 +19,11 @@ public abstract class FeatureStratifier<F extends Feature, T> extends WindowedSt
     }
 
     public T getStratification(final FeatureContext featureContext) {
-        final List<F> mapabilityFeatures = featureContext.getValues(
+        final List<F> features = featureContext.getValues(
                 getFeatureInput(),
                 getLeadingBases(),
                 getTrailingBases());
-        final T stratification = getStratification(mapabilityFeatures);
+        final T stratification = getStratification(features);
         return stratification;
     }
 
