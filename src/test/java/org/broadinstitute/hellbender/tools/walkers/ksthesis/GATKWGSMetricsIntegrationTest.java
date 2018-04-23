@@ -136,38 +136,38 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     }
 
     @Test
-    public void testGATKWGSMetricsEncode1() throws IOException {
-        final File tempFile = createTempFile("testGATKWGSMetricsEncode1.", ".txt");
+    public void testGATKWGSMetricsK100Umap1() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsK100Umap1.", ".txt");
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
-                        " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
+                        " -M " + TEST_DATA_DIR.resolve("hg19.k100.umap.20_10000001-10002000.bed") +
                         " -L 20:10000001-10001000" +
                         " -GCL 50" +
                         " -GCT 50" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
-        testSpec.executeTest("testGATKWGSMetricsEncode1", this);
-        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode1.txt");
+        testSpec.executeTest("testGATKWGSMetricsK100Umap1", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsK100Umap1.txt");
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 
     @Test
-    public void testGATKWGSMetricsEncode2() throws IOException {
-        final File tempFile = createTempFile("testGATKWGSMetricsEncode2.", ".txt");
+    public void testGATKWGSMetricsK100Umap2() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsK100Umap2.", ".txt");
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
-                        " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
+                        " -M " + TEST_DATA_DIR.resolve("hg19.k100.umap.20_10000001-10002000.bed") +
                         " -L 20:10001001-10002000" +
                         " -GCL 50" +
                         " -GCT 50" +
                         " -O " + tempFile,
                 Collections.emptyList()
         );
-        testSpec.executeTest("testGATKWGSMetricsEncode2", this);
-        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode2.txt");
+        testSpec.executeTest("testGATKWGSMetricsK100Umap2", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsK100Umap2.txt");
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 

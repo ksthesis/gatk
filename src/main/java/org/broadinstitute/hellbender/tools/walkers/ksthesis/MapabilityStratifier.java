@@ -31,7 +31,10 @@ public class MapabilityStratifier extends FeatureStratifier<BEDFeature, Integer>
             return -1;
         } else {
             final BEDFeature track = features.get(0);
-            final int mapability = (int) Math.floor(100 * Double.valueOf(track.getName()));
+            final float score = track.getScore();
+            if (Float.isNaN(score))
+                return -1;
+            final int mapability = (int) Math.floor(100 * score);
             return bin(mapability, binSize);
         }
     }

@@ -1,6 +1,5 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
-import org.apache.commons.io.IOUtils;
 import org.broadinstitute.hellbender.CommandLineProgramTest;
 import org.broadinstitute.hellbender.utils.test.ArgumentsBuilder;
 import org.broadinstitute.hellbender.utils.test.BaseTest;
@@ -21,9 +20,9 @@ public class GatherGATKWGSMetricsIntegrationTest extends CommandLineProgramTest 
     public void testGatherGATKWGSMetrics() throws Exception {
         final ArgumentsBuilder args = new ArgumentsBuilder();
         args.add("--input");
-        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode1.txt"));
+        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsK100Umap1.txt"));
         args.add("--input");
-        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode2.txt"));
+        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsK100Umap2.txt"));
 
         final File tempReportFile = BaseTest.createTempFile("testGatherGATKWGSMetrics.", ".txt");
         args.add("-O");
