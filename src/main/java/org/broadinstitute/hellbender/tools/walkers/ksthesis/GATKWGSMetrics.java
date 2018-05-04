@@ -76,7 +76,7 @@ public final class GATKWGSMetrics extends LocusWalker {
             shortName = "GCB",
             doc = "GC content bin, default 2",
             optional = true)
-    public int gcBin = 2;
+    public double gcBin = 2;
 
     @Argument(fullName = "insertSizeMax",
             shortName = "ISM",

@@ -1,5 +1,5 @@
 #:GATKReport.v1.1:3
-#:GATKTable:10:1749:%d:%d:%s:%d:%s:%d:%d:%.8f:%.8f:%.8f:;
+#:GATKTable:10:1749:%.0f:%d:%s:%d:%s:%d:%d:%.8f:%.8f:%.8f:;
 #:GATKTable:ReadAverages:ReadAverages
 gc_content  mapability  read_group  insert_length  strand    count  median  average      variance     dispersion
         54         100  20GAV.8               400  disabled     82       8   7.45454545   0.42975207  0.05764967
@@ -1752,7 +1752,7 @@ gc_content  mapability  read_group  insert_length  strand    count  median  aver
         16         100  20FUK.2               400  disabled     18       9   9.00000000   0.00000000  0.00000000
         16         100  20FUK.1               300  disabled     20      10  10.00000000   0.00000000  0.00000000
 
-#:GATKTable:10:5450:%d:%d:%s:%d:%s:%d:%d:%d:%.8f:%.8f:;
+#:GATKTable:10:5450:%.0f:%d:%s:%d:%s:%d:%d:%d:%.8f:%.8f:;
 #:GATKTable:ReadCounts:ReadCounts
 gc_content  mapability  read_group  insert_length  strand    coverage  count  expected  probability  poisson   
         54         100  20GAV.8               400  disabled         8      6         1   0.54545455  0.13689288
@@ -7206,7 +7206,7 @@ gc_content  mapability  read_group  insert_length  strand    coverage  count  ex
         16         100  20FUK.2               400  disabled         9      2         0   1.00000000  0.13175564
         16         100  20FUK.1               300  disabled        10      2         0   1.00000000  0.12511004
 
-#:GATKTable:3:50:%d:%d:%d:;
+#:GATKTable:3:50:%.0f:%d:%d:;
 #:GATKTable:ReferenceCounts:ReferenceCounts
 gc_content  mapability  count
         54         100     11

@@ -1,13 +1,15 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
 @SuppressWarnings("WeakerAccess")
-public class GCStratifier extends ReferenceStratifier<Integer> {
+public class GCStratifier extends ReferenceStratifier<Double> {
 
-    private final int binSize;
+    private final double binSize;
+    private final String columnFormat;
 
-    public GCStratifier(final int binSize) {
-        super(binSize > 0, -1);
+    public GCStratifier(final double binSize) {
+        super(binSize > 0, -1D);
         this.binSize = binSize;
+        this.columnFormat = getDecimalFormat(binSize);
     }
 
     @Override
@@ -17,11 +19,11 @@ public class GCStratifier extends ReferenceStratifier<Integer> {
 
     @Override
     public String getColumnFormat() {
-        return "%d";
+        return columnFormat;
     }
 
     @Override
-    public Integer getStratification(final byte[] bases) {
+    public Double getStratification(final byte[] bases) {
         int atContent = 0;
         int gcContent = 0;
         for (final byte base : bases) {
@@ -32,10 +34,10 @@ public class GCStratifier extends ReferenceStratifier<Integer> {
             }
         }
         if (atContent + gcContent == 0) {
-            return 0;
+            return -1D;
         } else {
-            final int pct = (100 * gcContent) / (atContent + gcContent);
-            return bin(pct, binSize);
+            final double pct = (100D * gcContent) / (atContent + gcContent);
+            return binDouble(pct, binSize);
         }
     }
 }

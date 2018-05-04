@@ -38,6 +38,22 @@ public class GATKWGSMetricsIntegrationTest extends CommandLineProgramTest {
     }
 
     @Test
+    public void testGATKWGSMetricsGcDecimal() throws IOException {
+        final File tempReportFile = createTempFile("testGATKWGSMetricsGcDecimal.", ".txt");
+        IntegrationTestSpec testSpec = new IntegrationTestSpec(
+                " -R " + b37_reference_20_21 +
+                        " -I " + NA12878_20_21_WGS_bam +
+                        " -L 20:10000001-10001000" +
+                        " -GCB 33.333" +
+                        " -O " + tempReportFile,
+                Collections.emptyList()
+        );
+        testSpec.executeTest("testGATKWGSMetricsGcDecimal", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsGcDecimal.txt");
+        IntegrationTestSpec.assertEqualTextFiles(tempReportFile, expectedFile.toFile());
+    }
+
+    @Test
     public void testGATKWGSMetricsFilterDuplicates() throws IOException {
         final File tempFile = createTempFile("testGATKWGSMetricsFilterDuplicates.", ".txt");
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
