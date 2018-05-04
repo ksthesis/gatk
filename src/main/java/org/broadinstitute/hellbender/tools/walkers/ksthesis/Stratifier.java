@@ -1,6 +1,8 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
-@SuppressWarnings("WeakerAccess")
+import java.math.BigDecimal;
+
+@SuppressWarnings({"WeakerAccess", "unused"})
 public abstract class Stratifier<IN, OUT> {
 
     private final boolean enabled;
@@ -25,19 +27,36 @@ public abstract class Stratifier<IN, OUT> {
         }
     }
 
-    protected static int bin(int value, int binSize) {
+    protected static int binInt(int value, int binSize) {
         return (value / binSize) * binSize;
     }
 
-    protected static int bin(int value, int binSize, int max) {
-        return Math.min(max, bin(value, binSize));
+    protected static int binInt(int value, int binSize, int max) {
+        return Math.min(max, binInt(value, binSize));
     }
 
-    protected static int bin(double value, int binSize) {
-        return bin((int)value, binSize);
+    protected static int binInt(double value, int binSize) {
+        return binInt((int)value, binSize);
     }
 
-    protected static int bin(double value, int binSize, int max) {
-        return bin((int)value, binSize, max);
+    protected static int binInt(double value, int binSize, int max) {
+        return binInt((int)value, binSize, max);
+    }
+    
+    protected static double binDouble(double value, double binSize) {
+        return Math.floor(value / binSize) * binSize;
+    }
+
+    protected static double binDouble(double value, double binSize, double max) {
+        return Math.min(max, binDouble(value, binSize));
+    }
+
+    protected static String getDecimalFormat(final double value) {
+        return "%." + getDecimalLength(value) + "f";
+    }
+
+    protected static int getDecimalLength(final double value) {
+        final String[] decimalParts = BigDecimal.valueOf(value).toPlainString().split("\\.");
+        return decimalParts.length == 2 && !"0".equals(decimalParts[1]) ? decimalParts[1].length() : 0;
     }
 }

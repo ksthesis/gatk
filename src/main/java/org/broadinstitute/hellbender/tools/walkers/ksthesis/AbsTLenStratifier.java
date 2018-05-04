@@ -26,6 +26,6 @@ public class AbsTLenStratifier extends ReadStratifier<Integer> {
 
     @Override
     public Integer getStratification(final GATKRead read) {
-        return bin(Math.abs(read.getFragmentLength()), binSize, insertSizeMax);
+        return binInt(Math.abs(read.getFragmentLength()), binSize, insertSizeMax);
     }
 }

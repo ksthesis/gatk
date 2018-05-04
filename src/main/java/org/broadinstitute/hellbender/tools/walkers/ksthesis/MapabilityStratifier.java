@@ -35,7 +35,7 @@ public class MapabilityStratifier extends FeatureStratifier<BEDFeature, Integer>
             if (Float.isNaN(score))
                 return -1;
             final int mapability = (int) Math.floor(100 * score);
-            return bin(mapability, binSize);
+            return binInt(mapability, binSize);
         }
     }
 }

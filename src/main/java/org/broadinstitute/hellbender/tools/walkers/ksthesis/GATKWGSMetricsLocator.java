@@ -82,7 +82,7 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
             shortName = "GCF",
             doc = "GC content filter, default -1",
             optional = true)
-    public int gcFilter = -1;
+    public double gcFilter = -1;
 
     @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
     public FeatureInput<BEDFeature> mapabilityBed;
@@ -142,8 +142,8 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
         if ('N' == base)
             return;
 
-        final int gcStrat = gcStratifier.getEnabledStratification(ref);
-        if (gcFilter > -1 && gcStrat != gcFilter)
+        final double gcStrat = gcStratifier.getEnabledStratification(ref);
+        if (gcFilter > -1D && gcStrat != gcFilter)
             return;
 
         final int mapStrat = mapabilityBed != null ? mapabilityStratifier.getEnabledStratification(featureContext) : -1;
@@ -170,7 +170,11 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
         }
 
         if (printLocInfo) {
-            outputStream.printf("%s\t%d\t%d\t%d\t%d\t%d%n",
+            final String format = String.format("%%s\t%%d\t%%d\t%%d\t%s\t%s%%n",
+                    gcStratifier.getColumnFormat(),
+                    // mapability is currently an int. if it switches to a double the format will need to change.
+                    "%d");
+            outputStream.printf(format,
                     context.getContig(), context.getStart(), allCount, count, gcStrat, mapStrat);
         }
     }

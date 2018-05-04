@@ -37,7 +37,7 @@ public class PriorCoverageStratifier extends FeatureStratifier<VariantContext, I
         } else {
             final VariantContext track = features.get(0);
             final int depth = track.getAttributeAsInt(VCFConstants.DEPTH_KEY, -1);
-            return bin(depth, binSize, depthMax);
+            return binInt(depth, binSize, depthMax);
         }
     }
 }

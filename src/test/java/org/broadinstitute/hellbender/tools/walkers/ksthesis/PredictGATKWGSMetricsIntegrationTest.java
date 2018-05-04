@@ -18,9 +18,9 @@ public class PredictGATKWGSMetricsIntegrationTest extends CommandLineProgramTest
     public void testPredictGATKWGSMetrics() throws Exception {
         final ArgumentsBuilder args = new ArgumentsBuilder();
         args.add("--input");
-        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode1.txt"));
+        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsK100Umap1.txt"));
         args.add("--input");
-        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsEncode2.txt"));
+        args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsK100Umap2.txt"));
         args.add("--pileup");
         args.add(2_000_000L);
 

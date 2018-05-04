@@ -54,13 +54,13 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
     }
 
     @Test
-    public void testGATKWGSMetricsLocatorEncode() throws IOException {
-        final File tempFile = createTempFile("testGATKWGSMetricsLocatorEncode.", ".txt");
+    public void testGATKWGSMetricsLocatorK100Umap() throws IOException {
+        final File tempFile = createTempFile("testGATKWGSMetricsLocatorK100Umap.", ".txt");
         tempFile.createNewFile();
         IntegrationTestSpec testSpec = new IntegrationTestSpec(
                 " -R " + b37_reference_20_21 +
                         " -I " + NA12878_20_21_WGS_bam +
-                        " -M " + TEST_DATA_DIR.resolve("wgEncodeCrgMapabilityAlign36mer.20_10000001-10002000.bed") +
+                        " -M " + TEST_DATA_DIR.resolve("hg19.k100.umap.20_10000001-10002000.bed") +
                         " -L 20:10000001-10001000" +
                         " -GCF 30" +
                         " -GCL 50" +
@@ -68,8 +68,8 @@ public class GATKWGSMetricsLocatorIntegrationTest extends CommandLineProgramTest
                         " -O " + tempFile,
                 Collections.emptyList()
         );
-        testSpec.executeTest("testGATKWGSMetricsEncode", this);
-        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsLocatorEncode.txt");
+        testSpec.executeTest("testGATKWGSMetricsK100Umap", this);
+        final Path expectedFile = TEST_DATA_DIR.resolve("testGATKWGSMetricsLocatorK100Umap.txt");
         IntegrationTestSpec.assertEqualTextFiles(tempFile, expectedFile.toFile());
     }
 
