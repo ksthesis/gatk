@@ -105,14 +105,14 @@ public final class GATKWGSMetrics extends LocusWalker {
             optional = true)
     public int coverageMax = 500;
 
-    @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
-    public FeatureInput<BEDFeature> mapabilityBed;
+    @Argument(fullName = "mappability", shortName = "M", doc = "mappability BED file", optional = true)
+    public FeatureInput<BEDFeature> mappabilityBed;
 
-    @Argument(fullName = "mapabilityBin",
+    @Argument(fullName = "mappabilityBin",
             shortName = "MAPB",
-            doc = "Mapability bin, default 20",
+            doc = "Mappability bin, default 20",
             optional = true)
-    public int mapabilityBin = 20;
+    public int mappabilityBin = 20;
 
     @Argument(fullName = "regionLabels", shortName = "RL", doc = "region labels BED file", optional = true)
     public FeatureInput<BEDFeature> regionLabelsBed;
@@ -179,8 +179,8 @@ public final class GATKWGSMetrics extends LocusWalker {
         if (coverageVcf != null)
             featureStratifiers.add(new PriorCoverageStratifier(coverageVcf, coverageBin, coverageMax));
 
-        if (mapabilityBed != null)
-            featureStratifiers.add(new MapabilityStratifier(mapabilityBed, mapabilityBin));
+        if (mappabilityBed != null)
+            featureStratifiers.add(new MappabilityStratifier(mappabilityBed, mappabilityBin));
 
         if (regionLabelsBed != null)
             featureStratifiers.add(new RegionLabelStratifier(regionLabelsBed, !disableRegionLabels));

@@ -84,14 +84,14 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
             optional = true)
     public double gcFilter = -1;
 
-    @Argument(fullName = "mapability", shortName = "M", doc = "mapability BED file", optional = true)
-    public FeatureInput<BEDFeature> mapabilityBed;
+    @Argument(fullName = "mappability", shortName = "M", doc = "mappability BED file", optional = true)
+    public FeatureInput<BEDFeature> mappabilityBed;
 
-    @Argument(fullName = "mapabilityBin",
+    @Argument(fullName = "mappabilityBin",
             shortName = "MAPB",
-            doc = "Mapability bin, default 20",
+            doc = "Mappability bin, default 20",
             optional = true)
-    public int mapabilityBin = 20;
+    public int mappabilityBin = 20;
 
     @Argument(fullName = "emitZeroCoverageLocs",
             shortName = "EZCL",
@@ -117,7 +117,7 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
     }
 
     private GCStratifier gcStratifier;
-    private MapabilityStratifier mapabilityStratifier;
+    private MappabilityStratifier mappabilityStratifier;
 
     @Override
     public void onTraversalStart() {
@@ -125,8 +125,8 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
         gcStratifier.setLeadingBases(gcWindowLeadingBases);
         gcStratifier.setTrailingBases(gcWindowTrailingBases);
 
-        if (mapabilityBed != null)
-            mapabilityStratifier = new MapabilityStratifier(mapabilityBed, mapabilityBin);
+        if (mappabilityBed != null)
+            mappabilityStratifier = new MappabilityStratifier(mappabilityBed, mappabilityBin);
 
         try {
             outputStream = new PrintStream(outFile);
@@ -146,7 +146,7 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
         if (gcFilter > -1D && gcStrat != gcFilter)
             return;
 
-        final int mapStrat = mapabilityBed != null ? mapabilityStratifier.getEnabledStratification(featureContext) : -1;
+        final int mapStrat = mappabilityBed != null ? mappabilityStratifier.getEnabledStratification(featureContext) : -1;
 
         int allCount = 0;
         int count = 0;
@@ -172,7 +172,7 @@ public final class GATKWGSMetricsLocator extends LocusWalker {
         if (printLocInfo) {
             final String format = String.format("%%s\t%%d\t%%d\t%%d\t%s\t%s%%n",
                     gcStratifier.getColumnFormat(),
-                    // mapability is currently an int. if it switches to a double the format will need to change.
+                    // mappability is currently an int. if it switches to a double the format will need to change.
                     "%d");
             outputStream.printf(format,
                     context.getContig(), context.getStart(), allCount, count, gcStrat, mapStrat);
