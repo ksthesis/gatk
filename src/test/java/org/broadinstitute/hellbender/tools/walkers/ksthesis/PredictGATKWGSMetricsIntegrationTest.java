@@ -22,7 +22,8 @@ public class PredictGATKWGSMetricsIntegrationTest extends CommandLineProgramTest
         args.add("--input");
         args.add(TEST_DATA_DIR.resolve("testGATKWGSMetricsK100Umap2.txt"));
         args.add("--pileup");
-        args.add(2_000_000L);
+        args.add(50_000);
+        args.add("--average");
 
         final File tempFile = BaseTest.createTempFile("testPredictGATKWGSMetrics.", ".txt");
         args.add("-O");

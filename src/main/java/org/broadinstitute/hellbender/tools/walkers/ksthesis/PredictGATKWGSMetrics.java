@@ -24,8 +24,8 @@ public class PredictGATKWGSMetrics extends CommandLineProgram {
     @Argument(fullName = "pileup", doc = "Prediction pileup size")
     public Long pileup = null;
 
-    @Argument(fullName = "doNotAverage", doc = "Do not generate an average")
-    public boolean doNotAverage = false;
+    @Argument(fullName = "average", doc = "Generate an average")
+    public boolean average = false;
 
     @Argument(fullName = StandardArgumentDefinitions.OUTPUT_LONG_NAME,
             shortName = StandardArgumentDefinitions.OUTPUT_SHORT_NAME, doc = "File to output the gathered file to")
@@ -49,7 +49,7 @@ public class PredictGATKWGSMetrics extends CommandLineProgram {
             //final GATKWGSMetricsReport inc = new GATKWGSMetricsReport(inputs.get(i));
             acc.addMetrics(inputs.get(i));
         }
-        if (!doNotAverage) {
+        if (average) {
             logger.info("Averaging the predictions");
             acc.addAverageMetrics();
         }
