@@ -297,7 +297,7 @@ public class GATKWGSMetricsReport {
                     // Weight by the portion of the read pileup covered by this read average key.
                     final double readWeight = safeDivide(totalPileCount, referencePileCount);
 
-                    final double scaledCoverage = averageCoverage * pileupScale;
+                    final double scaledCoverage = averageCoverage * pileupScale / readWeight;
 
                     final PoissonDistribution poissonDistribution =
                             new PoissonDistribution(null, scaledCoverage,
