@@ -60,49 +60,84 @@ public final class SplitReadsIntegrationTest extends CommandLineProgramTest {
         byUnknown.put(".whatever", 2);
         byUnknown.put("."  + SplitReads.UNKNOWN_OUT_PREFIX, 17);
 
-        final Function<SamReader.Type, Stream<Object[]>> argTests = t -> Stream.of(
-                new Object[]{t, TEST_DATA_GOOD_READS_PREFIX, Collections.<String>emptyList(), byNone},
-                new Object[]{t, TEST_DATA_GOOD_READS_PREFIX, Collections.singletonList(SplitReads.SAMPLE_SHORT_NAME), bySample},
-                new Object[]{t, TEST_DATA_GOOD_READS_PREFIX, Collections.singletonList(SplitReads.READ_GROUP_SHORT_NAME), byRG},
-                new Object[]{t, TEST_DATA_GOOD_READS_PREFIX, Collections.singletonList(SplitReads.LIBRARY_NAME_SHORT_NAME), byLibrary},
-                new Object[]{t, TEST_DATA_GOOD_READS_PREFIX, Arrays.asList(SplitReads.SAMPLE_SHORT_NAME, SplitReads.READ_GROUP_SHORT_NAME), bySampleAndRG},
-                new Object[]{t, TEST_DATA_GOOD_READS_PREFIX, Arrays.asList(
-                        SplitReads.SAMPLE_SHORT_NAME,
-                        SplitReads.READ_GROUP_SHORT_NAME,
-                        SplitReads.LIBRARY_NAME_SHORT_NAME),
-                        bySampleAndRGAndLibrary
-                },
-                new Object[]{t, TEST_DATA_MISSING_LIB__PREFIX, Collections.singletonList(SplitReads.LIBRARY_NAME_SHORT_NAME), byUnknown}
-        );
+        final Function<SamReader.Type[], Stream<Object[]>> argTests = types -> {
+            final SamReader.Type typeIn = types[0];
+            final SamReader.Type typeOut = types[1];
+            return Stream.of(
+                    new Object[]{typeIn, typeOut, TEST_DATA_GOOD_READS_PREFIX, Collections.<String>emptyList(),
+                            byNone
+                    },
+                    new Object[]{typeIn, typeOut, TEST_DATA_GOOD_READS_PREFIX, Collections.singletonList(
+                            SplitReads.SAMPLE_SHORT_NAME),
+                            bySample
+                    },
+                    new Object[]{typeIn, typeOut, TEST_DATA_GOOD_READS_PREFIX, Collections.singletonList(
+                            SplitReads.READ_GROUP_SHORT_NAME),
+                            byRG
+                    },
+                    new Object[]{typeIn, typeOut, TEST_DATA_GOOD_READS_PREFIX, Collections.singletonList(
+                            SplitReads.LIBRARY_NAME_SHORT_NAME),
+                            byLibrary
+                    },
+                    new Object[]{typeIn, typeOut, TEST_DATA_GOOD_READS_PREFIX, Arrays.asList(
+                            SplitReads.SAMPLE_SHORT_NAME,
+                            SplitReads.READ_GROUP_SHORT_NAME),
+                            bySampleAndRG
+                    },
+                    new Object[]{typeIn, typeOut, TEST_DATA_GOOD_READS_PREFIX, Arrays.asList(
+                            SplitReads.SAMPLE_SHORT_NAME,
+                            SplitReads.READ_GROUP_SHORT_NAME,
+                            SplitReads.LIBRARY_NAME_SHORT_NAME),
+                            bySampleAndRGAndLibrary
+                    },
+                    new Object[]{typeIn, typeOut, TEST_DATA_MISSING_LIB__PREFIX, Collections.singletonList(
+                            SplitReads.LIBRARY_NAME_SHORT_NAME),
+                            byUnknown
+                    }
+            );
+        };
 
-        return getSamReaderTypes()
+        return getInputOutputTypes()
                 .map(argTests)
                 .flatMap(Function.identity())
                 .toArray(Object[][]::new);
     }
 
     @Test(dataProvider = "splitReadsData")
-    public void testSplitReadsByReadGroup(final SamReader.Type type,
+    public void testSplitReadsByReadGroup(final SamReader.Type typeIn,
+                                          final SamReader.Type typeOut,
                                           final String baseName,
                                           final List<String> splitArgs,
                                           final Map<String, Integer> splitCounts) throws Exception {
-        final String fileExtension = "." + type.fileExtension();
+        final String inFileExtension = "." + typeIn.fileExtension();
+        final String outFileExtension =
+                "." + Optional.ofNullable(typeOut).map(SamReader.Type::fileExtension).orElse("default");
         final List<String> args = new ArrayList<>();
 
         Path outputDir = Files.createTempDirectory(
-                splitArgs.stream().reduce(baseName, (acc, arg) -> acc + "." + arg) + fileExtension + "."
+                splitArgs.stream().reduce(baseName, (acc, arg) -> acc + "." + arg)
+                        + inFileExtension + outFileExtension+ "."
         );
         outputDir.toFile().deleteOnExit();
 
         args.add("-"+ StandardArgumentDefinitions.INPUT_SHORT_NAME);
-        args.add(getTestDataDir() + "/" + baseName + fileExtension);
+        args.add(getTestDataDir() + "/" + baseName + inFileExtension);
 
         args.add("-"+ StandardArgumentDefinitions.OUTPUT_SHORT_NAME );
         args.add(outputDir.toString());
 
-        if (isReferenceRequired(type)) {
+        if (isReferenceRequired(typeIn) || isReferenceRequired(typeOut)) {
             args.add("-" + StandardArgumentDefinitions.REFERENCE_SHORT_NAME );
             args.add(getTestDataDir()+ "/" + getReferenceSequenceName(baseName));
+        }
+
+        final String expectedFileExtension;
+        if (typeOut == null) {
+            expectedFileExtension = inFileExtension;
+        } else {
+            args.add("-" + SplitReads.OUTPUT_EXTENSION_SHORT_NAME);
+            args.add(typeOut.fileExtension());
+            expectedFileExtension = "." + typeOut.fileExtension();
         }
 
         splitArgs.forEach(arg -> {
@@ -112,7 +147,7 @@ public final class SplitReadsIntegrationTest extends CommandLineProgramTest {
         Assert.assertNull(runCommandLine(args));
 
         for (final Map.Entry<String, Integer> splitCount: splitCounts.entrySet()) {
-            final String outputFileName = baseName + splitCount.getKey() + fileExtension;
+            final String outputFileName = baseName + splitCount.getKey() + expectedFileExtension;
             Assert.assertEquals(
                     getReadCounts(outputDir, baseName, outputFileName),
                     (int)splitCount.getValue(),
@@ -141,6 +176,17 @@ public final class SplitReadsIntegrationTest extends CommandLineProgramTest {
                 .filter(v -> v instanceof SamReader.Type)
                 .map(v -> (SamReader.Type) v)
                 .filter(v -> !v.fileExtension().equals("sra")); // exclude SRA file types until we have tests
+    }
+
+    private static Stream<SamReader.Type> getSamReaderTypesWithNull() {
+        final SamReader.Type nullType = null;
+        return Stream.concat(getSamReaderTypes(), Stream.of(nullType));
+    }
+
+    private static Stream<SamReader.Type[]> getInputOutputTypes() {
+        return getSamReaderTypes().flatMap(typeIn ->
+                getSamReaderTypesWithNull().map(typeOut -> new SamReader.Type[]{typeIn, typeOut})
+        );
     }
 
     private static <V> V orNull(final Callable<V> callable) {

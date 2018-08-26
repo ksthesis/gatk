@@ -68,9 +68,11 @@ public final class SplitReads extends ReadWalker {
     public static final String SAMPLE_SHORT_NAME = "SM";
     public static final String READ_GROUP_SHORT_NAME = "RG";
     public static final String LIBRARY_NAME_SHORT_NAME = "LB";
+    public static final String OUTPUT_EXTENSION_SHORT_NAME= "OE";
     public static final String SAMPLE_LONG_NAME = "split-sample";
     public static final String READ_GROUP_LONG_NAME = "split-read-group";
     public static final String LIBRARY_NAME_LONG_NAME = "split-library-name";
+    public static final String OUTPUT_EXTENSION_LONG_NAME = "output-extension";
     public static final String UNKNOWN_OUT_PREFIX = "unknown";
 
 
@@ -102,6 +104,14 @@ public final class SplitReads extends ReadWalker {
     )
     public boolean LIBRARY_NAME;
 
+    @Argument(
+            fullName = OUTPUT_EXTENSION_LONG_NAME,
+            shortName = OUTPUT_EXTENSION_SHORT_NAME,
+            doc = "Output extension (SAM/BAM/CRAM), by default uses the input extension.",
+            optional = true
+    )
+    public String OUTPUT_EXTENSION;
+
     private final List<ReaderSplitter<?>> splitters = new ArrayList<>();
     private Map<String, SAMFileGATKReadWriter> outs = null;
 
@@ -110,6 +120,14 @@ public final class SplitReads extends ReadWalker {
         IOUtil.assertDirectoryIsWritable(OUTPUT_DIRECTORY);
         if ( readArguments.getReadFiles().size() != 1 ) {
             throw new UserException("This tool only accepts a single SAM/BAM/CRAM as input");
+        }
+
+        if (OUTPUT_EXTENSION != null) {
+            if (!OUTPUT_EXTENSION.toLowerCase().equals("bam")
+                    && !OUTPUT_EXTENSION.toLowerCase().equals("cram")
+                    && !OUTPUT_EXTENSION.toLowerCase().equals("sam")) {
+                throw new UserException("This tool only accepts SAM/BAM/CRAM as the output extension");
+            }
         }
 
         if (SAMPLE) {
@@ -157,7 +175,12 @@ public final class SplitReads extends ReadWalker {
             SAMFileHeader samFileHeaderIn,
             final String keyName) {
         final String base = FilenameUtils.getBaseName(readArguments.getReadFiles().get(0).getName());
-        final String extension = "." + FilenameUtils.getExtension(readArguments.getReadFiles().get(0).getName());
+        final String extension;
+        if (OUTPUT_EXTENSION == null) {
+            extension = "." + FilenameUtils.getExtension(readArguments.getReadFiles().get(0).getName());
+        } else {
+            extension = "." + OUTPUT_EXTENSION;
+        }
         final File outFile = new File(OUTPUT_DIRECTORY, base + keyName + extension);
         return createSAMWriter(outFile, true);
     }
