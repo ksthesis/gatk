@@ -1,5 +1,6 @@
 package org.broadinstitute.hellbender.tools.walkers.ksthesis;
 
+import htsjdk.samtools.SAMReadGroupRecord;
 import htsjdk.samtools.SAMSequenceDictionary;
 import htsjdk.variant.variantcontext.Allele;
 import htsjdk.variant.variantcontext.VariantContextBuilder;
@@ -22,6 +23,7 @@ import org.broadinstitute.hellbender.utils.read.GATKRead;
 import java.io.File;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
 import java.util.stream.IntStream;
 
 /**
@@ -85,6 +87,7 @@ public final class GATKWGSMetricsGenerator extends LocusWalker {
 
     private VariantContextWriter variantContextWriter = null;
 
+    private int numReadGroups = 0;
     private Mean mathMean = new Mean();
     private Variance mathVariance = new Variance();
     private static final String READ_GROUP_COUNT_KEY = "RGC";
@@ -96,38 +99,43 @@ public final class GATKWGSMetricsGenerator extends LocusWalker {
     public void onTraversalStart() {
         variantContextWriter = createVCFWriter(outFile);
 
-        final VCFInfoHeaderLine infoReadGroupCount = new VCFInfoHeaderLine(
-                READ_GROUP_COUNT_KEY,
-                1,
-                VCFHeaderLineType.Integer,
-                "Read group count"
-        );
-        final VCFInfoHeaderLine infoReadGroupDepthMean = new VCFInfoHeaderLine(
-                READ_GROUP_DEPTH_MEAN_KEY,
-                1,
-                VCFHeaderLineType.Float,
-                "Approximate depth mean per read group; some reads may have been filtered"
-        );
-        final VCFInfoHeaderLine infoReadGroupDepthVariance = new VCFInfoHeaderLine(
-                READ_GROUP_DEPTH_VARIANCE_KEY,
-                1,
-                VCFHeaderLineType.Integer,
-                "Approximate depth variance per read group; some reads may have been filtered"
-        );
-        final VCFInfoHeaderLine infoReadGroupDepthDispersion = new VCFInfoHeaderLine(
-                READ_GROUP_DEPTH_DISPERSION_KEY,
-                1,
-                VCFHeaderLineType.Float,
-                "Approximate depth dispersion per read group; some reads may have been filtered"
-        );
-
         final Set<VCFHeaderLine> vcfHeaderLines = new HashSet<>();
         vcfHeaderLines.add(VCFStandardHeaderLines.getInfoLine(VCFConstants.DEPTH_KEY));
         if (generateReadGroupSummaryMetrics) {
+            final VCFInfoHeaderLine infoReadGroupCount = new VCFInfoHeaderLine(
+                    READ_GROUP_COUNT_KEY,
+                    1,
+                    VCFHeaderLineType.Integer,
+                    "Read group count"
+            );
+            final VCFInfoHeaderLine infoReadGroupDepthMean = new VCFInfoHeaderLine(
+                    READ_GROUP_DEPTH_MEAN_KEY,
+                    1,
+                    VCFHeaderLineType.Float,
+                    "Approximate depth mean per read group; some reads may have been filtered"
+            );
+            final VCFInfoHeaderLine infoReadGroupDepthVariance = new VCFInfoHeaderLine(
+                    READ_GROUP_DEPTH_VARIANCE_KEY,
+                    1,
+                    VCFHeaderLineType.Integer,
+                    "Approximate depth variance per read group; some reads may have been filtered"
+            );
+            final VCFInfoHeaderLine infoReadGroupDepthDispersion = new VCFInfoHeaderLine(
+                    READ_GROUP_DEPTH_DISPERSION_KEY,
+                    1,
+                    VCFHeaderLineType.Float,
+                    "Approximate depth dispersion per read group; some reads may have been filtered"
+            );
+
             vcfHeaderLines.add(infoReadGroupCount);
             vcfHeaderLines.add(infoReadGroupDepthMean);
             vcfHeaderLines.add(infoReadGroupDepthVariance);
             vcfHeaderLines.add(infoReadGroupDepthDispersion);
+
+            final List<SAMReadGroupRecord> allReadGroups =
+                    Objects.requireNonNull(getHeaderForReads(), "getHeaderForReads return null").getReadGroups();
+            numReadGroups = new HashSet<>(allReadGroups).size();
+            logger.info("Total number of read groups: " + numReadGroups);
         }
         final VCFHeader header = new VCFHeader(vcfHeaderLines);
 
@@ -163,7 +171,10 @@ public final class GATKWGSMetricsGenerator extends LocusWalker {
                     .toArray();
 
             final int pileupSize = IntStream.of(intCounts).sum();
-            final double[] doubleCounts = IntStream.of(intCounts).mapToDouble(v -> v).toArray();
+            final double[] doubleCounts = DoubleStream.concat(
+                    IntStream.of(intCounts).mapToDouble(v -> v),
+                    DoubleStream.of(0d).limit(numReadGroups - intCounts.length)
+            ).toArray();
             final double variance = mathVariance.evaluate(doubleCounts);
             final double mean = mathMean.evaluate(doubleCounts);
             final double dispersion = mean == 0 ? 0 : variance / mean;
